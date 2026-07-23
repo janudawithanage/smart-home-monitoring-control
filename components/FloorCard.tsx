@@ -1,5 +1,6 @@
 import { Colors } from '@/constants/colors';
 import { Floor } from '@/types/device';
+import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import {
     Dimensions,
@@ -13,7 +14,11 @@ interface Props {
   floor: Floor;
 }
 
-const FLOOR_ICONS = ['🏠', '🛏️', '🔭'];
+const FLOOR_ICONS: (keyof typeof Ionicons.glyphMap)[] = [
+  'home-outline',
+  'bed-outline',
+  'telescope-outline',
+];
 
 const { width } = Dimensions.get('window');
 
@@ -35,7 +40,13 @@ export default function FloorCard({ floor }: Props) {
       accessibilityLabel={`${floor.name}, ${floor.activeDeviceCount} of ${floor.deviceCount} devices active`}
     >
       {/* Floor icon */}
-      <Text style={styles.floorIcon}>{FLOOR_ICONS[floor.level] ?? '🏢'}</Text>
+      <View style={styles.iconWrap}>
+        <Ionicons
+          name={FLOOR_ICONS[floor.level] ?? 'business-outline'}
+          size={22}
+          color={Colors.accent.blue}
+        />
+      </View>
 
       {/* Info */}
       <View style={styles.info}>
@@ -55,7 +66,7 @@ export default function FloorCard({ floor }: Props) {
         />
       </View>
 
-      <Text style={styles.chevron}>›</Text>
+      <Ionicons name="chevron-forward" size={18} color={Colors.text.muted} />
     </TouchableOpacity>
   );
 }
@@ -73,10 +84,14 @@ const styles = StyleSheet.create({
     borderColor: Colors.border.default,
     gap: 14,
   },
-  floorIcon: {
-    fontSize: 28,
-  },
-  info: {
+  iconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: 'rgba(106,171,255,0.12)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },  info: {
     flex: 1,
     gap: 4,
   },
@@ -100,10 +115,5 @@ const styles = StyleSheet.create({
     height: '100%',
     backgroundColor: Colors.accent.blue,
     borderRadius: 2,
-  },
-  chevron: {
-    fontSize: 22,
-    color: Colors.text.muted,
-    fontWeight: '300',
   },
 });

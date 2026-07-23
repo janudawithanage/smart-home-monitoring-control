@@ -1,5 +1,6 @@
 import { Colors } from '@/constants/colors';
 import { Device } from '@/types/device';
+import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useCallback } from 'react';
 import {
@@ -17,15 +18,15 @@ interface Props {
   onToggle: (id: string) => void;
 }
 
-const DEVICE_ICONS: Record<string, string> = {
-  light: '💡',
-  thermostat: '🌡️',
-  lock: '🔒',
-  camera: '📷',
-  fan: '🌀',
-  tv: '📺',
-  speaker: '🔊',
-  outlet: '🔌',
+const DEVICE_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
+  light: 'bulb-outline',
+  thermostat: 'thermometer-outline',
+  lock: 'lock-closed-outline',
+  camera: 'camera-outline',
+  fan: 'refresh-outline',
+  tv: 'tv-outline',
+  speaker: 'volume-high-outline',
+  outlet: 'flash-outline',
 };
 
 const { width } = Dimensions.get('window');
@@ -56,7 +57,11 @@ export default function DeviceCard({ device, onToggle }: Props) {
       {/* Top row: icon + switch */}
       <View style={styles.topRow}>
         <View style={[styles.iconBadge, { backgroundColor: `${accentColor}22` }]}>
-          <Text style={styles.icon}>{DEVICE_ICONS[device.type] ?? '⚙️'}</Text>
+          <Ionicons
+            name={DEVICE_ICONS[device.type] ?? 'settings-outline'}
+            size={20}
+            color={accentColor}
+          />
         </View>
         <SwitchButton
           value={isOn}
@@ -112,9 +117,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  icon: {
-    fontSize: 20,
   },
   name: {
     fontSize: 14,
