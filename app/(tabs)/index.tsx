@@ -7,8 +7,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert, Animated, Dimensions, Image, Keyboard, KeyboardAvoidingView,
-  Modal, Platform, Pressable, ScrollView, StatusBar, StyleSheet,
-  Text, TextInput, TouchableOpacity, View,
+  Modal, NativeScrollEvent, NativeSyntheticEvent,
+  Platform, Pressable,
+  ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View
 } from 'react-native';
 
 const { width, height } = Dimensions.get('window');
@@ -115,9 +116,15 @@ function CardRow({ children, last = false }: { children: React.ReactNode; last?:
 }
 
 // ─── Shared: TabBar ───────────────────────────────────────────────────────────
-function TabBar({ active, onChange }: { active: string; onChange: (id: string) => void }) {
+const TAB_BAR_HEIGHT = 120; // approximate height including bottom inset
+
+function TabBar({ active, onChange, translateY }: {
+  active: string;
+  onChange: (id: string) => void;
+  translateY: Animated.Value | Animated.AnimatedInterpolation<number>;
+}) {
   return (
-    <View style={S.tabOuter}>
+    <Animated.View style={[S.tabOuter, { transform: [{ translateY }] }]}>
       <View style={S.tabBloom} />
       <BlurView intensity={60} tint="dark" style={S.tabPill}>
         <View style={S.tabSpecular} />
@@ -148,7 +155,7 @@ function TabBar({ active, onChange }: { active: string; onChange: (id: string) =
           })}
         </View>
       </BlurView>
-    </View>
+    </Animated.View>
   );
 }
 
@@ -669,6 +676,43 @@ export default function HomeScreen() {
   const [modalVisible,    setModalVisible]    = useState(false);
   const [editingFloor,    setEditingFloor]    = useState<Floor | null>(null);
 
+  // ── Tab-bar hide-on-scroll ────────────────────────────────────────────────
+  const lastScrollY   = useRef(0);
+  const tabBarAnim    = useRef(new Animated.Value(0)).current;
+  const tabBarVisible = useRef(true);
+
+  const showTabBar = useCallback(() => {
+    if (!tabBarVisible.current) {
+      tabBarVisible.current = true;
+      Animated.spring(tabBarAnim, { toValue: 0, useNativeDriver: true, speed: 20, bounciness: 4 }).start();
+    }
+  }, [tabBarAnim]);
+
+  const hideTabBar = useCallback(() => {
+    if (tabBarVisible.current) {
+      tabBarVisible.current = false;
+      Animated.spring(tabBarAnim, { toValue: TAB_BAR_HEIGHT + IOS_BOTTOM + 20, useNativeDriver: true, speed: 20, bounciness: 0 }).start();
+    }
+  }, [tabBarAnim]);
+
+  const handleScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const currentY = e.nativeEvent.contentOffset.y;
+    const diff     = currentY - lastScrollY.current;
+    lastScrollY.current = currentY;
+    // Only trigger after scrolling past a small threshold to avoid jitter
+    if (diff > 4 && currentY > 50) {
+      hideTabBar();
+    } else if (diff < -4) {
+      showTabBar();
+    }
+  }, [hideTabBar, showTabBar]);
+
+  // Show tab bar again whenever the active tab changes
+  useEffect(() => {
+    showTabBar();
+    lastScrollY.current = 0;
+  }, [activeTab, showTabBar]);
+
   useEffect(() => {
     Promise.all([getFloors(), getDevices()]).then(([f, d]) => {
       setFloors(f); setDevices(d);
@@ -728,7 +772,8 @@ export default function HomeScreen() {
       {/* ── HOME TAB ────────────────────────────────────────────────────── */}
       <TabPanel visible={activeTab === 'home'}>
         <HomeNavBar alerts={issueCount} />
-        <ScrollView style={S.scroll} contentContainerStyle={S.scrollContent} showsVerticalScrollIndicator={false}>
+        <ScrollView style={S.scroll} contentContainerStyle={S.scrollContent} showsVerticalScrollIndicator={false}
+          onScroll={handleScroll} scrollEventThrottle={16}>
           <LargeTitle issueCount={issueCount} />
           <HomeSummary floors={floors} devices={devices} />
           <FloorSelector floors={floors} selectedId={selectedFloorId} onSelect={setSelectedFloorId} />
@@ -745,7 +790,8 @@ export default function HomeScreen() {
       <TabPanel visible={activeTab === 'floors'}>
         <FloorsNavBar onAdd={openAddFloor} />
         <ScrollView style={S.scroll} contentContainerStyle={S.scrollContent}
-          showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+          showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled"
+          onScroll={handleScroll} scrollEventThrottle={16}>
           <View style={S.heroSection}>
             <Text style={S.heroSub}>Smart Home</Text>
             <Text style={S.heroTitle}>Floor Selection</Text>
@@ -806,7 +852,7 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </TabPanel>
 
-      <TabBar active={activeTab} onChange={setActiveTab} />
+      <TabBar active={activeTab} onChange={setActiveTab} translateY={tabBarAnim} />
 
       <FloorModal visible={modalVisible} editingFloor={editingFloor}
         onClose={() => setModalVisible(false)} onSave={handleFloorSave} />
