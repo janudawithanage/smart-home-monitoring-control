@@ -1,10 +1,13 @@
 import { Device, Floor } from '@/types/device';
 
-export const FLOORS: Floor[] = [
+export let FLOORS: Floor[] = [
   { id: 'f0', name: 'Ground Floor', level: 0, deviceCount: 6, activeDeviceCount: 4 },
   { id: 'f1', name: 'First Floor',  level: 1, deviceCount: 5, activeDeviceCount: 2 },
   { id: 'f2', name: 'Second Floor', level: 2, deviceCount: 4, activeDeviceCount: 1 },
 ];
+
+/** Internal setter — used only by deviceService to keep the reference in sync. */
+export function setFLOORS(next: Floor[]) { FLOORS = next; }
 
 export const DEVICES: Device[] = [
   // --- Ground Floor ---

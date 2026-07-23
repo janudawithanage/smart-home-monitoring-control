@@ -6,7 +6,7 @@
  * to call Supabase (or any REST API) without changing the callers.
  */
 
-import { DEVICES, FLOORS } from '@/data/mockData';
+import { DEVICES, FLOORS, setFLOORS } from '@/data/mockData';
 import { Device, DeviceStatus, Floor } from '@/types/device';
 
 // ─── Floors ──────────────────────────────────────────────────────────────────
@@ -18,6 +18,34 @@ export async function getFloors(): Promise<Floor[]> {
 
 export async function getFloorById(id: string): Promise<Floor | undefined> {
   return Promise.resolve(FLOORS.find((f) => f.id === id));
+}
+
+export async function addFloor(name: string, level: number): Promise<Floor> {
+  const newFloor: Floor = {
+    id: `f${Date.now()}`,
+    name,
+    level,
+    deviceCount: 0,
+    activeDeviceCount: 0,
+  };
+  setFLOORS([...FLOORS, newFloor]);
+  return Promise.resolve({ ...newFloor });
+}
+
+export async function updateFloor(
+  id: string,
+  patch: Partial<Pick<Floor, 'name' | 'level'>>,
+): Promise<Floor | undefined> {
+  const idx = FLOORS.findIndex((f) => f.id === id);
+  if (idx === -1) return undefined;
+  setFLOORS(FLOORS.map((f, i) => (i === idx ? { ...f, ...patch } : f)));
+  return Promise.resolve({ ...FLOORS[idx] });
+}
+
+export async function deleteFloor(id: string): Promise<boolean> {
+  const before = FLOORS.length;
+  setFLOORS(FLOORS.filter((f) => f.id !== id));
+  return Promise.resolve(FLOORS.length < before);
 }
 
 // ─── Devices ─────────────────────────────────────────────────────────────────
