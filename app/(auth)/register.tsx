@@ -19,22 +19,29 @@ import {
 
 const { width, height } = Dimensions.get('window');
 
-export default function LoginScreen() {
+export default function RegisterScreen() {
+  const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const [fullNameFocused, setFullNameFocused] = useState(false);
   const [emailFocused, setEmailFocused] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
+  const [confirmPasswordFocused, setConfirmPasswordFocused] = useState(false);
 
-  const handleSignIn = () => {
-    router.replace('/dashboard');
+  const handleRegister = () => {
+    // TODO: wire up registration logic
   };
 
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
-      {/* Deep background gradient */}
+      {/* Background gradient */}
       <LinearGradient
         colors={['#06091a', '#0b1530', '#0d1f4a', '#06091a']}
         locations={[0, 0.35, 0.65, 1]}
@@ -72,13 +79,41 @@ export default function LoginScreen() {
 
               {/* Header */}
               <View style={styles.header}>
-                <Text style={styles.welcomeTitle}>Welcome Back</Text>
-                <Text style={styles.welcomeSubtitle}>
-                  Sign in to your smart home
+                <Text style={styles.title}>Create Account</Text>
+                <Text style={styles.subtitle}>
+                  Join your smart home ecosystem
                 </Text>
               </View>
 
-              {/* Email Field */}
+              {/* Full Name */}
+              <View style={styles.fieldGroup}>
+                <Text style={styles.fieldLabel}>Full Name</Text>
+                <BlurView
+                  intensity={fullNameFocused ? 80 : 50}
+                  tint="dark"
+                  style={[styles.inputBlur, fullNameFocused && styles.inputBlurFocused]}
+                >
+                  <Ionicons
+                    name="person-outline"
+                    size={18}
+                    color={fullNameFocused ? '#7eb3ff' : '#5a6a88'}
+                    style={styles.inputIcon}
+                  />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Jane Doe"
+                    placeholderTextColor="rgba(255,255,255,0.25)"
+                    autoCapitalize="words"
+                    autoComplete="name"
+                    value={fullName}
+                    onChangeText={setFullName}
+                    onFocus={() => setFullNameFocused(true)}
+                    onBlur={() => setFullNameFocused(false)}
+                  />
+                </BlurView>
+              </View>
+
+              {/* Email */}
               <View style={styles.fieldGroup}>
                 <Text style={styles.fieldLabel}>Email</Text>
                 <BlurView
@@ -107,14 +142,9 @@ export default function LoginScreen() {
                 </BlurView>
               </View>
 
-              {/* Password Field */}
+              {/* Password */}
               <View style={styles.fieldGroup}>
-                <View style={styles.labelRow}>
-                  <Text style={styles.fieldLabel}>Password</Text>
-                  <TouchableOpacity onPress={() => {}}>
-                    <Text style={styles.forgotText}>Forgot?</Text>
-                  </TouchableOpacity>
-                </View>
+                <Text style={styles.fieldLabel}>Password</Text>
                 <BlurView
                   intensity={passwordFocused ? 80 : 50}
                   tint="dark"
@@ -132,7 +162,7 @@ export default function LoginScreen() {
                     placeholderTextColor="rgba(255,255,255,0.25)"
                     secureTextEntry={!showPassword}
                     autoCapitalize="none"
-                    autoComplete="password"
+                    autoComplete="new-password"
                     value={password}
                     onChangeText={setPassword}
                     onFocus={() => setPasswordFocused(true)}
@@ -151,54 +181,70 @@ export default function LoginScreen() {
                 </BlurView>
               </View>
 
-              {/* Sign In Button */}
+              {/* Confirm Password */}
+              <View style={styles.fieldGroup}>
+                <Text style={styles.fieldLabel}>Confirm Password</Text>
+                <BlurView
+                  intensity={confirmPasswordFocused ? 80 : 50}
+                  tint="dark"
+                  style={[styles.inputBlur, confirmPasswordFocused && styles.inputBlurFocused]}
+                >
+                  <Ionicons
+                    name="shield-checkmark-outline"
+                    size={18}
+                    color={confirmPasswordFocused ? '#7eb3ff' : '#5a6a88'}
+                    style={styles.inputIcon}
+                  />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="••••••••••"
+                    placeholderTextColor="rgba(255,255,255,0.25)"
+                    secureTextEntry={!showConfirmPassword}
+                    autoCapitalize="none"
+                    autoComplete="new-password"
+                    value={confirmPassword}
+                    onChangeText={setConfirmPassword}
+                    onFocus={() => setConfirmPasswordFocused(true)}
+                    onBlur={() => setConfirmPasswordFocused(false)}
+                  />
+                  <TouchableOpacity
+                    onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                    style={styles.eyeButton}
+                  >
+                    <Ionicons
+                      name={showConfirmPassword ? 'eye-outline' : 'eye-off-outline'}
+                      size={20}
+                      color="#5a6a88"
+                    />
+                  </TouchableOpacity>
+                </BlurView>
+              </View>
+
+              {/* Register Button */}
               <TouchableOpacity
-                style={styles.signInButton}
-                onPress={handleSignIn}
+                style={styles.registerButton}
+                onPress={handleRegister}
                 activeOpacity={0.82}
               >
                 <LinearGradient
                   colors={['rgba(80,130,255,0.95)', 'rgba(50,100,240,0.95)']}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
-                  style={styles.signInGradient}
+                  style={styles.registerGradient}
                 >
-                  <Text style={styles.signInText}>Sign In</Text>
+                  <Text style={styles.registerText}>Create Account</Text>
                   <Ionicons name="arrow-forward" size={18} color="#ffffff" />
                 </LinearGradient>
               </TouchableOpacity>
-
-              {/* Divider */}
-              <View style={styles.dividerRow}>
-                <View style={styles.dividerLine} />
-                <Text style={styles.dividerText}>or continue with</Text>
-                <View style={styles.dividerLine} />
-              </View>
-
-              {/* Social Buttons */}
-              <View style={styles.socialRow}>
-                <TouchableOpacity activeOpacity={0.75} style={styles.socialButtonWrapper}>
-                  <BlurView intensity={50} tint="dark" style={styles.socialBlur}>
-                    <Ionicons name="logo-google" size={20} color="#ffffff" />
-                    <Text style={styles.socialLabel}>Google</Text>
-                  </BlurView>
-                </TouchableOpacity>
-                <TouchableOpacity activeOpacity={0.75} style={styles.socialButtonWrapper}>
-                  <BlurView intensity={50} tint="dark" style={styles.socialBlur}>
-                    <Ionicons name="logo-apple" size={20} color="#ffffff" />
-                    <Text style={styles.socialLabel}>Apple</Text>
-                  </BlurView>
-                </TouchableOpacity>
-              </View>
 
             </View>
           </BlurView>
 
           {/* Footer */}
           <View style={styles.footer}>
-            <Text style={styles.footerText}>New here? </Text>
-            <TouchableOpacity onPress={() => router.push('/(auth)/register')}>
-              <Text style={styles.footerLink}>Create Account</Text>
+            <Text style={styles.footerText}>Already have an account? </Text>
+            <TouchableOpacity onPress={() => router.back()}>
+              <Text style={styles.footerLink}>Sign In</Text>
             </TouchableOpacity>
           </View>
 
@@ -302,14 +348,14 @@ const styles = StyleSheet.create({
   header: {
     marginBottom: 28,
   },
-  welcomeTitle: {
+  title: {
     fontSize: 30,
     fontWeight: '700',
     color: '#ffffff',
     letterSpacing: -0.3,
     marginBottom: 6,
   },
-  welcomeSubtitle: {
+  subtitle: {
     fontSize: 15,
     color: 'rgba(255,255,255,0.45)',
     lineHeight: 22,
@@ -325,17 +371,6 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.6)',
     marginBottom: 8,
     letterSpacing: 0.3,
-  },
-  labelRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  forgotText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#6aabff',
   },
   inputBlur: {
     flexDirection: 'row',
@@ -368,10 +403,9 @@ const styles = StyleSheet.create({
     marginLeft: 6,
   },
 
-  // Sign In button
-  signInButton: {
+  // Register button
+  registerButton: {
     marginTop: 10,
-    marginBottom: 24,
     borderRadius: 16,
     overflow: 'hidden',
     shadowColor: '#4070ff',
@@ -380,62 +414,18 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     elevation: 12,
   },
-  signInGradient: {
+  registerGradient: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: 16,
     gap: 10,
   },
-  signInText: {
+  registerText: {
     color: '#ffffff',
     fontSize: 16,
     fontWeight: '700',
     letterSpacing: 0.3,
-  },
-
-  // Divider
-  dividerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
-    gap: 10,
-  },
-  dividerLine: {
-    flex: 1,
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-  },
-  dividerText: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.3)',
-    fontWeight: '500',
-    letterSpacing: 0.5,
-  },
-
-  // Social
-  socialRow: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  socialButtonWrapper: {
-    flex: 1,
-    borderRadius: 14,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-  },
-  socialBlur: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 13,
-    gap: 8,
-  },
-  socialLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: 'rgba(255,255,255,0.8)',
   },
 
   // Footer
