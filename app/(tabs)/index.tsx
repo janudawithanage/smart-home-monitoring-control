@@ -4,6 +4,7 @@ import { Device, DeviceType, Floor } from '@/types/device';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
+import { router } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert, Animated, Dimensions, Image, Keyboard, KeyboardAvoidingView,
@@ -416,7 +417,10 @@ function QuickActionsBar({ onGoFloors }: { onGoFloors: () => void }) {
       <View style={S.quickActionGrid}>
         {QUICK_ACTIONS.map(a => (
           <TouchableOpacity key={a.id} style={S.quickActionBtnOuter} activeOpacity={0.75}
-            onPress={() => { if (a.id === 'addFloor' || a.id === 'addDevice') onGoFloors(); }}
+            onPress={() => {
+              if (a.id === 'addFloor' || a.id === 'addDevice') { onGoFloors(); }
+              else if (a.id === 'floorPlan') { router.push('/floor-plan'); }
+            }}
             accessibilityRole="button" accessibilityLabel={a.label}>
             <BlurView intensity={34} tint="dark" style={StyleSheet.absoluteFillObject} />
             <View style={S.quickActionSpecular} />
@@ -757,7 +761,7 @@ export default function HomeScreen() {
   }, []);
 
   const handleOpenFloor = useCallback((floor: Floor) => {
-    Alert.alert(floor.name, `${floor.deviceCount} devices · ${floor.activeDeviceCount} active\n\nDevice detail view coming soon.`);
+    router.push(`/floor-plan?floorId=${floor.id}`);
   }, []);
 
   const openAddFloor = () => { setEditingFloor(null); setModalVisible(true); };

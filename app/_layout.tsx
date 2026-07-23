@@ -55,6 +55,7 @@ export default function RootLayout() {
         <Stack.Screen name="dashboard" options={{ headerShown: false }} />
         <Stack.Screen name="floors" options={{ headerShown: false, animation: 'fade' }} />
         <Stack.Screen name="device" options={{ headerShown: false }} />
+        <Stack.Screen name="floor-plan" options={{ headerShown: false, animation: 'slide_from_bottom' }} />
       </Stack>
       <StatusBar style="light" />
     </>
