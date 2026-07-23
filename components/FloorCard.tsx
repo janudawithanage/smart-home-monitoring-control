@@ -1,6 +1,5 @@
 import { Colors } from '@/constants/colors';
 import { Floor } from '@/types/device';
-import { router } from 'expo-router';
 import React from 'react';
 import {
     Dimensions,
@@ -23,7 +22,7 @@ export default function FloorCard({ floor }: Props) {
     floor.deviceCount > 0 ? floor.activeDeviceCount / floor.deviceCount : 0;
 
   const handlePress = () => {
-    router.push({ pathname: '/dashboard/devices', params: { floorId: floor.id } });
+    // navigation to devices removed — wire up to new route when ready
   };
 
   return (

@@ -27,7 +27,7 @@ export default function LoginScreen() {
   const [passwordFocused, setPasswordFocused] = useState(false);
 
   const handleSignIn = () => {
-    router.replace('/dashboard');
+    router.replace('/(tabs)');
   };
 
   return (
