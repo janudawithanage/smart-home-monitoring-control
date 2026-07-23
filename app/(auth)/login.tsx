@@ -1,3 +1,5 @@
+import { Ionicons } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useState } from 'react';
@@ -25,7 +27,6 @@ export default function LoginScreen() {
   const [passwordFocused, setPasswordFocused] = useState(false);
 
   const handleSignIn = () => {
-    // Navigate to the dashboard after sign in
     router.replace('/dashboard');
   };
 
@@ -33,16 +34,17 @@ export default function LoginScreen() {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
-      {/* Background Gradient */}
+      {/* Deep background gradient */}
       <LinearGradient
-        colors={['#0a1628', '#0d2044', '#0f2a5c', '#0a1628']}
-        locations={[0, 0.3, 0.6, 1]}
+        colors={['#06091a', '#0b1530', '#0d1f4a', '#06091a']}
+        locations={[0, 0.35, 0.65, 1]}
         style={StyleSheet.absoluteFillObject}
       />
 
-      {/* Decorative background circles */}
-      <View style={styles.bgCircle1} />
-      <View style={styles.bgCircle2} />
+      {/* Ambient light orbs */}
+      <View style={styles.orb1} />
+      <View style={styles.orb2} />
+      <View style={styles.orb3} />
 
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -53,122 +55,160 @@ export default function LoginScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Logo Card */}
+          {/* Logo */}
           <View style={styles.logoWrapper}>
-            <View style={styles.logoCard}>
+            <BlurView intensity={40} tint="dark" style={styles.logoBlur}>
               <Image
                 source={require('@/assets/images/logo.png')}
                 style={styles.logoImage}
                 resizeMode="contain"
               />
-            </View>
+            </BlurView>
           </View>
 
-          {/* Login Card */}
-          <View style={styles.card}>
-            {/* Header */}
-            <View style={styles.header}>
-              <Text style={styles.welcomeTitle}>Welcome Back</Text>
-              <Text style={styles.welcomeSubtitle}>
-                Manage your sanctuary with precision.
-              </Text>
-            </View>
+          {/* Glass Card */}
+          <BlurView intensity={60} tint="dark" style={styles.glassCard}>
+            {/* Subtle inner border shine */}
+            <View style={styles.cardInner}>
 
-            {/* Email Field */}
-            <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>Email Address</Text>
-              <View style={[styles.inputWrapper, emailFocused && styles.inputWrapperFocused]}>
-                <Text style={styles.inputIcon}>@</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="name@luxury.com"
-                  placeholderTextColor="#4a5a7a"
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoComplete="email"
-                  value={email}
-                  onChangeText={setEmail}
-                  onFocus={() => setEmailFocused(true)}
-                  onBlur={() => setEmailFocused(false)}
-                />
+              {/* Header */}
+              <View style={styles.header}>
+                <Text style={styles.welcomeTitle}>Welcome Back</Text>
+                <Text style={styles.welcomeSubtitle}>
+                  Sign in to your smart home
+                </Text>
               </View>
-            </View>
 
-            {/* Password Field */}
-            <View style={styles.fieldGroup}>
-              <View style={styles.passwordLabelRow}>
-                <Text style={styles.fieldLabel}>Password</Text>
-                <TouchableOpacity onPress={() => {}}>
-                  <Text style={styles.forgotPassword}>Forgot Password?</Text>
-                </TouchableOpacity>
-              </View>
-              <View style={[styles.inputWrapper, passwordFocused && styles.inputWrapperFocused]}>
-                <Text style={styles.inputIcon}>🔒</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="••••••••••••"
-                  placeholderTextColor="#4a5a7a"
-                  secureTextEntry={!showPassword}
-                  autoCapitalize="none"
-                  autoComplete="password"
-                  value={password}
-                  onChangeText={setPassword}
-                  onFocus={() => setPasswordFocused(true)}
-                  onBlur={() => setPasswordFocused(false)}
-                />
-                <TouchableOpacity
-                  onPress={() => setShowPassword(!showPassword)}
-                  style={styles.eyeButton}
+              {/* Email Field */}
+              <View style={styles.fieldGroup}>
+                <Text style={styles.fieldLabel}>Email</Text>
+                <BlurView
+                  intensity={emailFocused ? 80 : 50}
+                  tint="dark"
+                  style={[
+                    styles.inputBlur,
+                    emailFocused && styles.inputBlurFocused,
+                  ]}
                 >
-                  <Text style={styles.eyeIcon}>{showPassword ? '👁' : '👁‍🗨'}</Text>
+                  <Ionicons
+                    name="mail-outline"
+                    size={18}
+                    color={emailFocused ? '#7eb3ff' : '#5a6a88'}
+                    style={styles.inputIcon}
+                  />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="you@example.com"
+                    placeholderTextColor="rgba(255,255,255,0.25)"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoComplete="email"
+                    value={email}
+                    onChangeText={setEmail}
+                    onFocus={() => setEmailFocused(true)}
+                    onBlur={() => setEmailFocused(false)}
+                  />
+                </BlurView>
+              </View>
+
+              {/* Password Field */}
+              <View style={styles.fieldGroup}>
+                <View style={styles.labelRow}>
+                  <Text style={styles.fieldLabel}>Password</Text>
+                  <TouchableOpacity onPress={() => {}}>
+                    <Text style={styles.forgotText}>Forgot?</Text>
+                  </TouchableOpacity>
+                </View>
+                <BlurView
+                  intensity={passwordFocused ? 80 : 50}
+                  tint="dark"
+                  style={[
+                    styles.inputBlur,
+                    passwordFocused && styles.inputBlurFocused,
+                  ]}
+                >
+                  <Ionicons
+                    name="lock-closed-outline"
+                    size={18}
+                    color={passwordFocused ? '#7eb3ff' : '#5a6a88'}
+                    style={styles.inputIcon}
+                  />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="••••••••••"
+                    placeholderTextColor="rgba(255,255,255,0.25)"
+                    secureTextEntry={!showPassword}
+                    autoCapitalize="none"
+                    autoComplete="password"
+                    value={password}
+                    onChangeText={setPassword}
+                    onFocus={() => setPasswordFocused(true)}
+                    onBlur={() => setPasswordFocused(false)}
+                  />
+                  <TouchableOpacity
+                    onPress={() => setShowPassword(!showPassword)}
+                    style={styles.eyeButton}
+                  >
+                    <Ionicons
+                      name={showPassword ? 'eye-outline' : 'eye-off-outline'}
+                      size={20}
+                      color="#5a6a88"
+                    />
+                  </TouchableOpacity>
+                </BlurView>
+              </View>
+
+              {/* Sign In Button */}
+              <TouchableOpacity
+                style={styles.signInButton}
+                onPress={handleSignIn}
+                activeOpacity={0.82}
+              >
+                <LinearGradient
+                  colors={['rgba(80,130,255,0.95)', 'rgba(50,100,240,0.95)']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.signInGradient}
+                >
+                  <Text style={styles.signInText}>Sign In</Text>
+                  <Ionicons name="arrow-forward" size={18} color="#ffffff" />
+                </LinearGradient>
+              </TouchableOpacity>
+
+              {/* Divider */}
+              <View style={styles.dividerRow}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>or continue with</Text>
+                <View style={styles.dividerLine} />
+              </View>
+
+              {/* Social Buttons */}
+              <View style={styles.socialRow}>
+                <TouchableOpacity activeOpacity={0.75} style={styles.socialButtonWrapper}>
+                  <BlurView intensity={50} tint="dark" style={styles.socialBlur}>
+                    <Ionicons name="logo-google" size={20} color="#ffffff" />
+                    <Text style={styles.socialLabel}>Google</Text>
+                  </BlurView>
+                </TouchableOpacity>
+                <TouchableOpacity activeOpacity={0.75} style={styles.socialButtonWrapper}>
+                  <BlurView intensity={50} tint="dark" style={styles.socialBlur}>
+                    <Ionicons name="logo-apple" size={20} color="#ffffff" />
+                    <Text style={styles.socialLabel}>Apple</Text>
+                  </BlurView>
                 </TouchableOpacity>
               </View>
-            </View>
 
-            {/* Sign In Button */}
-            <TouchableOpacity
-              style={styles.signInButton}
-              onPress={handleSignIn}
-              activeOpacity={0.85}
-            >
-              <LinearGradient
-                colors={['#3d6bea', '#4d7cf4', '#5a8aff']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.signInGradient}
-              >
-                <Text style={styles.signInText}>Sign In</Text>
-                <Text style={styles.signInArrow}>→</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-
-            {/* Divider */}
-            <View style={styles.dividerRow}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>OR CONTINUE WITH</Text>
-              <View style={styles.dividerLine} />
             </View>
-
-            {/* Social Buttons */}
-            <View style={styles.socialRow}>
-              <TouchableOpacity style={styles.socialButton} activeOpacity={0.8}>
-                <Text style={styles.googleG}>G</Text>
-                <Text style={styles.socialLabel}>Google</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.socialButton} activeOpacity={0.8}>
-                <Text style={styles.appleGrid}>⊞</Text>
-                <Text style={styles.socialLabel}>Apple</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+          </BlurView>
 
           {/* Footer */}
           <View style={styles.footer}>
-            <Text style={styles.footerText}>New to the platform? </Text>
+            <Text style={styles.footerText}>New here? </Text>
             <TouchableOpacity onPress={() => {}}>
               <Text style={styles.footerLink}>Request Access</Text>
             </TouchableOpacity>
           </View>
+
         </ScrollView>
       </KeyboardAvoidingView>
     </View>
@@ -178,7 +218,7 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0a1628',
+    backgroundColor: '#06091a',
   },
   keyboardView: {
     flex: 1,
@@ -186,68 +226,85 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     alignItems: 'center',
-    paddingBottom: 40,
-    paddingTop: Platform.OS === 'ios' ? 60 : 50,
+    paddingBottom: 48,
+    paddingTop: Platform.OS === 'ios' ? 72 : 56,
   },
 
-  // Background decoration
-  bgCircle1: {
+  // Ambient orbs
+  orb1: {
     position: 'absolute',
-    width: width * 0.8,
-    height: width * 0.8,
-    borderRadius: width * 0.4,
-    backgroundColor: 'rgba(61, 107, 234, 0.08)',
-    top: -width * 0.2,
-    right: -width * 0.2,
+    width: width * 0.9,
+    height: width * 0.9,
+    borderRadius: width * 0.45,
+    backgroundColor: 'rgba(50, 110, 255, 0.12)',
+    top: -width * 0.25,
+    right: -width * 0.25,
   },
-  bgCircle2: {
+  orb2: {
     position: 'absolute',
-    width: width * 0.6,
-    height: width * 0.6,
-    borderRadius: width * 0.3,
-    backgroundColor: 'rgba(61, 107, 234, 0.05)',
-    bottom: height * 0.2,
-    left: -width * 0.15,
+    width: width * 0.7,
+    height: width * 0.7,
+    borderRadius: width * 0.35,
+    backgroundColor: 'rgba(100, 60, 200, 0.09)',
+    bottom: height * 0.15,
+    left: -width * 0.2,
+  },
+  orb3: {
+    position: 'absolute',
+    width: width * 0.5,
+    height: width * 0.5,
+    borderRadius: width * 0.25,
+    backgroundColor: 'rgba(0, 160, 255, 0.07)',
+    bottom: height * 0.35,
+    right: -width * 0.1,
   },
 
   // Logo
   logoWrapper: {
     alignItems: 'center',
-    marginBottom: 28,
+    marginBottom: 32,
   },
-  logoCard: {
-    width: 120,
-    height: 120,
-    backgroundColor: '#0f1e3a',
-    borderRadius: 24,
+  logoBlur: {
+    width: 110,
+    height: 110,
+    borderRadius: 26,
+    overflow: 'hidden',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#3d6bea',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.4,
-    shadowRadius: 20,
-    elevation: 12,
     borderWidth: 1,
-    borderColor: 'rgba(61, 107, 234, 0.2)',
+    borderColor: 'rgba(255, 255, 255, 0.12)',
   },
   logoImage: {
-    width: 100,
-    height: 60,
+    width: 88,
+    height: 52,
   },
 
-  // Card
-  card: {
+  // Glass card
+  glassCard: {
     width: width - 32,
-    backgroundColor: '#0f1e3a',
-    borderRadius: 24,
-    padding: 28,
+    borderRadius: 28,
+    overflow: 'hidden',
     borderWidth: 1,
-    borderColor: 'rgba(61, 107, 234, 0.15)',
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    // iOS shadow for depth
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 20 },
+    shadowOffset: { width: 0, height: 24 },
     shadowOpacity: 0.5,
-    shadowRadius: 40,
-    elevation: 20,
+    shadowRadius: 48,
+    elevation: 24,
+  },
+  cardInner: {
+    padding: 28,
+    // Top highlight — simulates glass reflection
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.18)',
+    borderLeftWidth: 1,
+    borderLeftColor: 'rgba(255, 255, 255, 0.08)',
+    borderRightWidth: 1,
+    borderRightColor: 'rgba(255, 255, 255, 0.04)',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.04)',
+    borderRadius: 28,
   },
 
   // Header
@@ -255,109 +312,95 @@ const styles = StyleSheet.create({
     marginBottom: 28,
   },
   welcomeTitle: {
-    fontSize: 32,
-    fontWeight: '800',
+    fontSize: 30,
+    fontWeight: '700',
     color: '#ffffff',
-    letterSpacing: -0.5,
-    marginBottom: 8,
+    letterSpacing: -0.3,
+    marginBottom: 6,
   },
   welcomeSubtitle: {
-    fontSize: 16,
-    color: '#8a9bc0',
-    lineHeight: 24,
+    fontSize: 15,
+    color: 'rgba(255,255,255,0.45)',
+    lineHeight: 22,
   },
 
-  // Form fields
+  // Fields
   fieldGroup: {
-    marginBottom: 20,
+    marginBottom: 18,
   },
   fieldLabel: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
-    color: '#c0cce8',
+    color: 'rgba(255,255,255,0.6)',
     marginBottom: 8,
-    letterSpacing: 0.2,
+    letterSpacing: 0.3,
   },
-  passwordLabelRow: {
+  labelRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 8,
   },
-  forgotPassword: {
+  forgotText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#4d7cf4',
+    color: '#6aabff',
   },
-  inputWrapper: {
+  inputBlur: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0a1628',
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: 'rgba(61, 107, 234, 0.2)',
+    borderRadius: 14,
+    overflow: 'hidden',
+    height: 52,
     paddingHorizontal: 14,
-    height: 54,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
   },
-  inputWrapperFocused: {
-    borderColor: '#4d7cf4',
-    backgroundColor: '#0d1e38',
-    shadowColor: '#4d7cf4',
+  inputBlurFocused: {
+    borderColor: 'rgba(110,170,255,0.5)',
+    shadowColor: '#5090ff',
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
   },
   inputIcon: {
-    fontSize: 16,
-    color: '#4a5a7a',
     marginRight: 10,
-    width: 20,
-    textAlign: 'center',
   },
   input: {
     flex: 1,
-    color: '#e8f0fe',
+    color: '#ffffff',
     fontSize: 15,
-    letterSpacing: 0.3,
+    letterSpacing: 0.2,
   },
   eyeButton: {
     padding: 4,
-    marginLeft: 8,
-  },
-  eyeIcon: {
-    fontSize: 16,
+    marginLeft: 6,
   },
 
-  // Sign In Button
+  // Sign In button
   signInButton: {
-    marginTop: 8,
+    marginTop: 10,
     marginBottom: 24,
-    borderRadius: 14,
+    borderRadius: 16,
     overflow: 'hidden',
-    shadowColor: '#3d6bea',
+    shadowColor: '#4070ff',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.45,
-    shadowRadius: 16,
-    elevation: 10,
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
+    elevation: 12,
   },
   signInGradient: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 17,
+    paddingVertical: 16,
     gap: 10,
   },
   signInText: {
     color: '#ffffff',
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '700',
     letterSpacing: 0.3,
-  },
-  signInArrow: {
-    color: '#ffffff',
-    fontSize: 18,
-    fontWeight: '700',
   },
 
   // Divider
@@ -365,50 +408,43 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 20,
-    gap: 12,
+    gap: 10,
   },
   dividerLine: {
     flex: 1,
-    height: 1,
-    backgroundColor: 'rgba(61, 107, 234, 0.2)',
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: 'rgba(255,255,255,0.15)',
   },
   dividerText: {
-    fontSize: 11,
-    color: '#4a5a7a',
-    fontWeight: '600',
-    letterSpacing: 1.5,
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.3)',
+    fontWeight: '500',
+    letterSpacing: 0.5,
   },
 
-  // Social Buttons
+  // Social
   socialRow: {
     flexDirection: 'row',
     gap: 12,
   },
-  socialButton: {
+  socialButtonWrapper: {
     flex: 1,
+    borderRadius: 14,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  socialBlur: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#0a1628',
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: 'rgba(61, 107, 234, 0.2)',
-    paddingVertical: 14,
+    paddingVertical: 13,
     gap: 8,
   },
-  googleG: {
-    fontSize: 16,
-    fontWeight: '900',
-    color: '#4285F4',
-  },
-  appleGrid: {
-    fontSize: 16,
-    color: '#c0cce8',
-  },
   socialLabel: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '600',
-    color: '#c0cce8',
+    color: 'rgba(255,255,255,0.8)',
   },
 
   // Footer
@@ -419,11 +455,11 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 14,
-    color: '#6a7a98',
+    color: 'rgba(255,255,255,0.35)',
   },
   footerLink: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#4d7cf4',
+    color: '#6aabff',
   },
 });
