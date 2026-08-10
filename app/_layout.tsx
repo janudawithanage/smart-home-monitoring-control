@@ -1,15 +1,8 @@
 import { AppSplashScreen } from '@/components/AppSplashScreen';
 import { Stack } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import 'react-native-reanimated';
-
-// Keep the native splash screen visible while we initialise
-SplashScreen.preventAutoHideAsync();
-
-// Fade the native splash out once we're ready
-SplashScreen.setOptions({ duration: 400, fade: true });
 
 export const unstable_settings = {
   anchor: '(auth)',
@@ -28,8 +21,8 @@ export default function RootLayout() {
       } catch (e) {
         console.warn('Splash screen prepare error:', e);
       } finally {
-        // Hide the native splash and let our custom screen take over
-        await SplashScreen.hideAsync();
+        // Custom splash will handle the transition
+        setShowSplash(false);
       }
     }
 
@@ -50,12 +43,11 @@ export default function RootLayout() {
       <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-        <Stack.Screen name="login" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false, animation: 'fade' }} />
-        <Stack.Screen name="dashboard" options={{ headerShown: false }} />
-        <Stack.Screen name="floors" options={{ headerShown: false, animation: 'fade' }} />
-        <Stack.Screen name="device" options={{ headerShown: false }} />
-        <Stack.Screen name="floor-plan" options={{ headerShown: false, animation: 'slide_from_bottom' }} />
+        <Stack.Screen name="device/[id]" options={{ headerShown: false }} />
+        <Stack.Screen name="floor-plan/index" options={{ headerShown: false, animation: 'slide_from_bottom' }} />
+        <Stack.Screen name="floors/index" options={{ headerShown: false, animation: 'fade' }} />
+        <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
       </Stack>
       <StatusBar style="light" />
     </>

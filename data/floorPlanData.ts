@@ -4,6 +4,10 @@
  * Defines device positions on the floor plan image.
  * Coordinates are (x, y) as a percentage (0–100) of the image width/height.
  * This makes positioning resolution-independent.
+ *
+ * Configs are mutable at runtime so that:
+ *   - user-uploaded floor plan images can be stored per floor
+ *   - device pin positions can be saved after the user places them
  */
 
 export interface DevicePin {
@@ -16,7 +20,11 @@ export interface DevicePin {
 
 export interface FloorPlanConfig {
   floorId: string;
-  /** Floor plan image asset (require(...)) */
+  /**
+   * Floor plan image source.
+   *   - Bundled assets: require('@/assets/images/…') — returned as a number
+   *   - User-uploaded: a `file://…` URI string
+   */
   image: any;
   /** Dimensions of the image canvas to use for positioning (logical px) */
   canvasWidth: number;
@@ -24,26 +32,20 @@ export interface FloorPlanConfig {
   pins: DevicePin[];
 }
 
-// ─── Floor Plan Configs ───────────────────────────────────────────────────────
+// ─── Mutable floor plan configs ───────────────────────────────────────────────
 
-export const FLOOR_PLAN_CONFIGS: FloorPlanConfig[] = [
+export let FLOOR_PLAN_CONFIGS: FloorPlanConfig[] = [
   {
     floorId: 'f0',
     image: require('@/assets/images/floor_plan_ground.png'),
     canvasWidth: 360,
     canvasHeight: 432,
     pins: [
-      // Living Room Light  (d1) – centre of living room
       { deviceId: 'd1', x: 35, y: 38 },
-      // Kitchen Light (d2) – kitchen area
       { deviceId: 'd2', x: 72, y: 46 },
-      // Front Door Lock (d3) – entrance
       { deviceId: 'd3', x: 50, y: 66 },
-      // Living Room Thermostat (d4) – living room right wall
       { deviceId: 'd4', x: 25, y: 50 },
-      // Kitchen TV (d5) – kitchen
       { deviceId: 'd5', x: 80, y: 55 },
-      // Garage Camera (d6) – garage corner
       { deviceId: 'd6', x: 16, y: 78 },
     ],
   },
@@ -53,15 +55,10 @@ export const FLOOR_PLAN_CONFIGS: FloorPlanConfig[] = [
     canvasWidth: 360,
     canvasHeight: 432,
     pins: [
-      // Master Bedroom Light (d7)
-      { deviceId: 'd7', x: 30, y: 30 },
-      // Bedroom Fan (d8)
-      { deviceId: 'd8', x: 45, y: 28 },
-      // Bathroom Light (d9)
-      { deviceId: 'd9', x: 75, y: 22 },
-      // Smart Speaker (d10)
+      { deviceId: 'd7',  x: 30, y: 30 },
+      { deviceId: 'd8',  x: 45, y: 28 },
+      { deviceId: 'd9',  x: 75, y: 22 },
       { deviceId: 'd10', x: 28, y: 44 },
-      // Hallway Outlet (d11)
       { deviceId: 'd11', x: 52, y: 62 },
     ],
   },
@@ -71,32 +68,97 @@ export const FLOOR_PLAN_CONFIGS: FloorPlanConfig[] = [
     canvasWidth: 360,
     canvasHeight: 432,
     pins: [
-      // Study Light (d12)
       { deviceId: 'd12', x: 38, y: 32 },
-      // Study Camera (d13)
       { deviceId: 'd13', x: 60, y: 28 },
-      // Attic Fan (d14)
       { deviceId: 'd14', x: 22, y: 55 },
-      // Guest Room TV (d15)
       { deviceId: 'd15', x: 70, y: 55 },
     ],
   },
 ];
 
+/** Internal setter — keeps the reference in sync (mirrors pattern from mockData). */
+export function setFLOOR_PLAN_CONFIGS(next: FloorPlanConfig[]) {
+  FLOOR_PLAN_CONFIGS = next;
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
 export function getFloorPlanConfig(floorId: string): FloorPlanConfig | undefined {
   return FLOOR_PLAN_CONFIGS.find((c) => c.floorId === floorId);
 }
 
-// Safety device types — these show special safety information in the detail sheet
+/**
+ * Create or overwrite the floor plan image for a floor.
+ * `imageSource` can be a `require(…)` result or a `file://…` URI string.
+ */
+export function setFloorPlanImage(floorId: string, imageSource: any): void {
+  const existing = FLOOR_PLAN_CONFIGS.find((c) => c.floorId === floorId);
+  if (existing) {
+    setFLOOR_PLAN_CONFIGS(
+      FLOOR_PLAN_CONFIGS.map((c) =>
+        c.floorId === floorId ? { ...c, image: imageSource } : c,
+      ),
+    );
+  } else {
+    // New floor — create an empty config
+    setFLOOR_PLAN_CONFIGS([
+      ...FLOOR_PLAN_CONFIGS,
+      {
+        floorId,
+        image: imageSource,
+        canvasWidth: 360,
+        canvasHeight: 432,
+        pins: [],
+      },
+    ]);
+  }
+}
+
+/**
+ * Upsert the pin position for a device on a given floor.
+ */
+export function setDevicePin(floorId: string, deviceId: string, x: number, y: number): void {
+  const config = FLOOR_PLAN_CONFIGS.find((c) => c.floorId === floorId);
+  if (!config) {
+    // Create a config shell if the floor has no plan yet
+    setFLOOR_PLAN_CONFIGS([
+      ...FLOOR_PLAN_CONFIGS,
+      { floorId, image: null, canvasWidth: 360, canvasHeight: 432, pins: [{ deviceId, x, y }] },
+    ]);
+    return;
+  }
+
+  const pinExists = config.pins.some((p) => p.deviceId === deviceId);
+  const updatedPins = pinExists
+    ? config.pins.map((p) => (p.deviceId === deviceId ? { ...p, x, y } : p))
+    : [...config.pins, { deviceId, x, y }];
+
+  setFLOOR_PLAN_CONFIGS(
+    FLOOR_PLAN_CONFIGS.map((c) =>
+      c.floorId === floorId ? { ...c, pins: updatedPins } : c,
+    ),
+  );
+}
+
+/**
+ * Remove the pin for a device from a floor's config.
+ */
+export function removeDevicePin(floorId: string, deviceId: string): void {
+  setFLOOR_PLAN_CONFIGS(
+    FLOOR_PLAN_CONFIGS.map((c) =>
+      c.floorId === floorId
+        ? { ...c, pins: c.pins.filter((p) => p.deviceId !== deviceId) }
+        : c,
+    ),
+  );
+}
+
+// ─── Safety / camera / multi-switch metadata ─────────────────────────────────
+
 export const SAFETY_DEVICE_TYPES = ['lock', 'fan'] as const;
-
-// Camera device types — these show camera placeholder UI
 export const CAMERA_DEVICE_TYPES = ['camera'] as const;
+export const MULTI_SWITCH_TYPES  = ['outlet', 'fan'] as const;
 
-// Multi-switch capable types — show multiple sub-controls
-export const MULTI_SWITCH_TYPES = ['outlet', 'fan'] as const;
-
-/** Safety info copy per device type */
 export const SAFETY_INFO: Record<string, { title: string; body: string; icon: string }> = {
   lock: {
     title: 'Security Device',

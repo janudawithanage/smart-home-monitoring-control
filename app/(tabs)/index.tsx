@@ -1,8 +1,9 @@
 import { Colors } from '@/constants/colors';
-import { addFloor, deleteFloor, getDevices, getFloors, updateFloor } from '@/services/deviceService';
+import { addDevice, addFloor, deleteFloor, getDevices, getFloors, updateFloor } from '@/services/deviceService';
 import { Device, DeviceType, Floor } from '@/types/device';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
+import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -410,7 +411,7 @@ function DeviceStatusOverview({ devices }: { devices: Device[] }) {
   );
 }
 
-function QuickActionsBar({ onGoFloors }: { onGoFloors: () => void }) {
+function QuickActionsBar({ onGoFloors, onAddDevice }: { onGoFloors: () => void; onAddDevice: () => void }) {
   return (
     <View style={S.section}>
       <View style={S.sectionHeader}><Text style={S.sectionTitle}>Quick Actions</Text></View>
@@ -418,7 +419,8 @@ function QuickActionsBar({ onGoFloors }: { onGoFloors: () => void }) {
         {QUICK_ACTIONS.map(a => (
           <TouchableOpacity key={a.id} style={S.quickActionBtnOuter} activeOpacity={0.75}
             onPress={() => {
-              if (a.id === 'addFloor' || a.id === 'addDevice') { onGoFloors(); }
+              if (a.id === 'addFloor') { onGoFloors(); }
+              else if (a.id === 'addDevice') { onAddDevice(); }
               else if (a.id === 'floorPlan') { router.push('/floor-plan'); }
             }}
             accessibilityRole="button" accessibilityLabel={a.label}>
@@ -442,7 +444,7 @@ function QuickActionsBar({ onGoFloors }: { onGoFloors: () => void }) {
 // FLOORS TAB COMPONENTS
 // ═══════════════════════════════════════════════════════════════════════════════
 
-function FloorsNavBar({ onAdd }: { onAdd: () => void }) {
+function FloorsNavBar({ onAdd, onAddDevice }: { onAdd: () => void; onAddDevice: () => void }) {
   return (
     <View style={S.navOuter}>
       <View style={S.navBloom} />
@@ -455,11 +457,18 @@ function FloorsNavBar({ onAdd }: { onAdd: () => void }) {
             </View>
             <Text style={S.navBrand}>My Floors</Text>
           </View>
-          <TouchableOpacity style={S.navIconBtn} onPress={onAdd} accessibilityLabel="Add floor" accessibilityRole="button">
-            <BlurView intensity={40} tint="dark" style={S.navIconGlass}>
-              <Ionicons name="add" size={22} color="#0A84FF" />
-            </BlurView>
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <TouchableOpacity style={S.navIconBtn} onPress={onAddDevice} accessibilityLabel="Add device" accessibilityRole="button">
+              <BlurView intensity={40} tint="dark" style={S.navIconGlass}>
+                <Ionicons name="hardware-chip-outline" size={18} color="rgba(255,255,255,0.88)" />
+              </BlurView>
+            </TouchableOpacity>
+            <TouchableOpacity style={S.navIconBtn} onPress={onAdd} accessibilityLabel="Add floor" accessibilityRole="button">
+              <BlurView intensity={40} tint="dark" style={S.navIconGlass}>
+                <Ionicons name="add" size={22} color="#0A84FF" />
+              </BlurView>
+            </TouchableOpacity>
+          </View>
         </View>
       </BlurView>
     </View>
@@ -490,6 +499,8 @@ function FloorCard({ floor, devices, onOpen, onEdit, onDelete }: {
   const scaleAnim  = useRef(new Animated.Value(1)).current;
   const pressIn  = () => Animated.spring(scaleAnim, { toValue: 0.96, useNativeDriver: true, speed: 40, bounciness: 5 }).start();
   const pressOut = () => Animated.spring(scaleAnim, { toValue: 1,    useNativeDriver: true, speed: 40, bounciness: 5 }).start();
+  // Use the user-uploaded floor plan if available, otherwise the default preview
+  const previewSource = floor.floorPlanUri ? { uri: floor.floorPlanUri } : FLOOR_PLAN_IMAGE;
   return (
     <Animated.View style={[S.cardWrap, { transform: [{ scale: scaleAnim }] }]}>
       <TouchableOpacity activeOpacity={1} onPress={onOpen} onPressIn={pressIn} onPressOut={pressOut}
@@ -499,7 +510,7 @@ function FloorCard({ floor, devices, onOpen, onEdit, onDelete }: {
         <View style={[S.cardSpecular, { backgroundColor: `${meta.color}30` }]} />
         <View style={[S.cardInnerBorder as any, { borderTopColor: `${meta.color}35` }]} />
         <View style={S.previewWrap}>
-          <Image source={FLOOR_PLAN_IMAGE} style={S.previewImg} resizeMode="cover" />
+          <Image source={previewSource} style={S.previewImg} resizeMode="cover" />
           <LinearGradient colors={['transparent','rgba(6,9,26,0.90)']} style={S.previewGradient} />
           <View style={[S.levelBadge, { backgroundColor: `${meta.color}22`, borderColor: `${meta.color}44` }]}>
             <Ionicons name={meta.icon} size={12} color={meta.color} />
@@ -570,25 +581,46 @@ function FloorEmptyState({ onAdd }: { onAdd: () => void }) {
 
 function FloorModal({ visible, editingFloor, onClose, onSave }: {
   visible: boolean; editingFloor: Floor | null;
-  onClose: () => void; onSave: (name: string, level: number) => void;
+  onClose: () => void; onSave: (name: string, level: number, floorPlanUri?: string) => void;
 }) {
-  const [name,  setName]  = useState('');
-  const [level, setLevel] = useState(0);
+  const [name,         setName]         = useState('');
+  const [level,        setLevel]        = useState(0);
+  const [floorPlanUri, setFloorPlanUri] = useState<string | undefined>(undefined);
   const slideAnim = useRef(new Animated.Value(height)).current;
+
   useEffect(() => {
     if (visible) {
       setName(editingFloor?.name ?? '');
       setLevel(editingFloor?.level ?? 0);
+      setFloorPlanUri(editingFloor?.floorPlanUri);
       Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, speed: 20, bounciness: 4 }).start();
     } else {
       Animated.timing(slideAnim, { toValue: height, useNativeDriver: true, duration: 220 }).start();
     }
   }, [visible, editingFloor]);
+
+  const handlePickImage = useCallback(async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert('Permission Required', 'Allow access to your photo library to upload a floor plan.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      quality: 0.85,
+    });
+    if (!result.canceled && result.assets[0]) {
+      setFloorPlanUri(result.assets[0].uri);
+    }
+  }, []);
+
   const handleSave = () => {
     const trimmed = name.trim();
     if (!trimmed) { Alert.alert('Name Required', 'Please enter a floor name.'); return; }
-    onSave(trimmed, level);
+    onSave(trimmed, level, floorPlanUri);
   };
+
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
       <KeyboardAvoidingView style={StyleSheet.absoluteFillObject} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
@@ -602,6 +634,8 @@ function FloorModal({ visible, editingFloor, onClose, onSave }: {
               <Ionicons name="close" size={18} color="rgba(255,255,255,0.7)" />
             </TouchableOpacity>
           </View>
+
+          {/* Floor Name */}
           <View style={S.inputSection}>
             <Text style={S.inputLabel}>Floor Name</Text>
             <View style={S.inputWrap}>
@@ -613,6 +647,8 @@ function FloorModal({ visible, editingFloor, onClose, onSave }: {
                 returnKeyType="done" onSubmitEditing={Keyboard.dismiss} accessibilityLabel="Floor name" />
             </View>
           </View>
+
+          {/* Floor Level */}
           <View style={S.inputSection}>
             <Text style={S.inputLabel}>Floor Level</Text>
             <View style={S.levelPicker}>
@@ -631,6 +667,37 @@ function FloorModal({ visible, editingFloor, onClose, onSave }: {
               })}
             </View>
           </View>
+
+          {/* Floor Plan Upload */}
+          <View style={S.inputSection}>
+            <Text style={S.inputLabel}>Floor Plan Image</Text>
+            <TouchableOpacity style={S.floorPlanUploadBtn} onPress={handlePickImage}
+              accessibilityRole="button" accessibilityLabel="Upload floor plan image">
+              <BlurView intensity={30} tint="dark" style={StyleSheet.absoluteFillObject} />
+              <View style={[S.inputBorder as any, { borderColor: floorPlanUri ? 'rgba(10,132,255,0.45)' : 'rgba(255,255,255,0.18)' }]} />
+              {floorPlanUri ? (
+                <>
+                  <Image source={{ uri: floorPlanUri }} style={S.floorPlanThumb} resizeMode="cover" />
+                  <View style={S.floorPlanOverlay}>
+                    <Ionicons name="image-outline" size={18} color="#0A84FF" />
+                    <Text style={S.floorPlanUploadText}>Change image</Text>
+                  </View>
+                  <View style={S.floorPlanCheckBadge}>
+                    <Ionicons name="checkmark-circle" size={20} color="#30D158" />
+                  </View>
+                </>
+              ) : (
+                <View style={S.floorPlanEmptyInner}>
+                  <View style={S.floorPlanIconRing}>
+                    <Ionicons name="cloud-upload-outline" size={22} color="rgba(10,132,255,0.8)" />
+                  </View>
+                  <Text style={S.floorPlanUploadText}>Upload floor plan</Text>
+                  <Text style={S.floorPlanUploadSub}>Tap to pick an image from your library</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
+
           <TouchableOpacity style={S.saveBtn} onPress={handleSave} accessibilityRole="button">
             <LinearGradient colors={['#1a6fff','#0A84FF','#0066dd']} style={StyleSheet.absoluteFillObject} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
             <View style={S.saveBtnSheen} />
@@ -638,6 +705,146 @@ function FloorModal({ visible, editingFloor, onClose, onSave }: {
             <Text style={S.saveBtnText}>{editingFloor ? 'Save Changes' : 'Add Floor'}</Text>
           </TouchableOpacity>
           <View style={{ height: IOS_BOTTOM + 8 }} />
+        </Animated.View>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+}
+
+// ─── Device type options ─────────────────────────────────────────────────────
+const DEVICE_TYPE_OPTIONS: { type: DeviceType; label: string; icon: keyof typeof Ionicons.glyphMap; color: string }[] = [
+  { type: 'light',      label: 'Light',      icon: 'bulb-outline',           color: Colors.device.light      },
+  { type: 'thermostat', label: 'Thermostat', icon: 'thermometer-outline',    color: Colors.device.thermostat },
+  { type: 'lock',       label: 'Lock',       icon: 'lock-closed-outline',    color: Colors.device.lock       },
+  { type: 'camera',     label: 'Camera',     icon: 'camera-outline',         color: Colors.device.camera     },
+  { type: 'fan',        label: 'Fan',        icon: 'refresh-outline',        color: Colors.device.fan        },
+  { type: 'tv',         label: 'TV',         icon: 'tv-outline',             color: Colors.device.tv         },
+  { type: 'speaker',    label: 'Speaker',    icon: 'volume-high-outline',    color: Colors.device.speaker    },
+  { type: 'outlet',     label: 'Outlet',     icon: 'flash-outline',          color: Colors.device.outlet     },
+];
+
+function AddDeviceModal({ visible, floors, onClose, onSave }: {
+  visible: boolean;
+  floors: Floor[];
+  onClose: () => void;
+  onSave: (device: { name: string; type: DeviceType; floorId: string; roomName: string }) => void;
+}) {
+  const [name,     setName]     = useState('');
+  const [roomName, setRoomName] = useState('');
+  const [selType,  setSelType]  = useState<DeviceType>('light');
+  const [selFloor, setSelFloor] = useState<string>('');
+  const slideAnim = useRef(new Animated.Value(height)).current;
+
+  useEffect(() => {
+    if (visible) {
+      setName(''); setRoomName(''); setSelType('light');
+      setSelFloor(floors.length > 0 ? floors[0].id : '');
+      Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, speed: 20, bounciness: 4 }).start();
+    } else {
+      Animated.timing(slideAnim, { toValue: height, useNativeDriver: true, duration: 220 }).start();
+    }
+  }, [visible, floors]);
+
+  const handleSave = () => {
+    const trimmedName = name.trim();
+    const trimmedRoom = roomName.trim();
+    if (!trimmedName) { Alert.alert('Name Required', 'Please enter a device name.'); return; }
+    if (!trimmedRoom) { Alert.alert('Room Required', 'Please enter the room name.'); return; }
+    if (!selFloor)    { Alert.alert('Floor Required', 'Please select a floor.'); return; }
+    onSave({ name: trimmedName, type: selType, floorId: selFloor, roomName: trimmedRoom });
+  };
+
+  return (
+    <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
+      <KeyboardAvoidingView style={StyleSheet.absoluteFillObject} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <Pressable style={S.modalBackdrop} onPress={Keyboard.dismiss} />
+        <Animated.View style={[S.modalSheet, S.addDeviceSheet, { transform: [{ translateY: slideAnim }] }]}>
+          <View style={S.modalHandle} />
+          <View style={S.modalHeader}>
+            <Text style={S.modalTitle}>Add Device</Text>
+            <TouchableOpacity style={S.modalCloseBtn} onPress={onClose} accessibilityLabel="Close">
+              <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFillObject} />
+              <Ionicons name="close" size={18} color="rgba(255,255,255,0.7)" />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+            {/* Device Name */}
+            <View style={S.inputSection}>
+              <Text style={S.inputLabel}>Device Name</Text>
+              <View style={S.inputWrap}>
+                <BlurView intensity={30} tint="dark" style={StyleSheet.absoluteFillObject} />
+                <View style={S.inputBorder as any} />
+                <Ionicons name="hardware-chip-outline" size={18} color="rgba(255,255,255,0.4)" style={S.inputIcon} />
+                <TextInput style={S.textInput} value={name} onChangeText={setName}
+                  placeholder="e.g. Living Room Light" placeholderTextColor="rgba(255,255,255,0.28)"
+                  returnKeyType="next" accessibilityLabel="Device name" />
+              </View>
+            </View>
+
+            {/* Room */}
+            <View style={S.inputSection}>
+              <Text style={S.inputLabel}>Room</Text>
+              <View style={S.inputWrap}>
+                <BlurView intensity={30} tint="dark" style={StyleSheet.absoluteFillObject} />
+                <View style={S.inputBorder as any} />
+                <Ionicons name="home-outline" size={18} color="rgba(255,255,255,0.4)" style={S.inputIcon} />
+                <TextInput style={S.textInput} value={roomName} onChangeText={setRoomName}
+                  placeholder="e.g. Living Room" placeholderTextColor="rgba(255,255,255,0.28)"
+                  returnKeyType="done" onSubmitEditing={Keyboard.dismiss} accessibilityLabel="Room name" />
+              </View>
+            </View>
+
+            {/* Device Type */}
+            <View style={S.inputSection}>
+              <Text style={S.inputLabel}>Device Type</Text>
+              <View style={S.deviceTypeGrid}>
+                {DEVICE_TYPE_OPTIONS.map(opt => {
+                  const active = selType === opt.type;
+                  return (
+                    <TouchableOpacity key={opt.type} style={[S.deviceTypeBtn, active && { borderColor: `${opt.color}66` }]}
+                      onPress={() => setSelType(opt.type)} accessibilityRole="radio" accessibilityState={{ checked: active }}>
+                      <BlurView intensity={active ? 50 : 25} tint="dark" style={StyleSheet.absoluteFillObject} />
+                      {active && <LinearGradient colors={[`${opt.color}33`, `${opt.color}15`]} style={StyleSheet.absoluteFillObject} />}
+                      <Ionicons name={opt.icon} size={20} color={active ? opt.color : 'rgba(255,255,255,0.35)'} />
+                      <Text style={[S.deviceTypeBtnText, active && { color: opt.color }]}>{opt.label}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+
+            {/* Floor */}
+            {floors.length > 0 && (
+              <View style={S.inputSection}>
+                <Text style={S.inputLabel}>Floor</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={S.floorChipRowModal}>
+                  {floors.map(fl => {
+                    const active = selFloor === fl.id;
+                    const meta   = getLevelMeta(fl.level);
+                    return (
+                      <TouchableOpacity key={fl.id} onPress={() => setSelFloor(fl.id)}
+                        style={[S.floorChipModal, active && { borderColor: `${meta.color}55` }]}
+                        accessibilityRole="radio" accessibilityState={{ checked: active }}>
+                        <BlurView intensity={active ? 50 : 25} tint="dark" style={StyleSheet.absoluteFillObject} />
+                        {active && <LinearGradient colors={[`${meta.color}28`, `${meta.color}10`]} style={StyleSheet.absoluteFillObject} />}
+                        <Ionicons name={meta.icon} size={14} color={active ? meta.color : 'rgba(255,255,255,0.45)'} />
+                        <Text style={[S.floorChipModalText, active && { color: meta.color }]}>{fl.name}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+            )}
+
+            <TouchableOpacity style={[S.saveBtn, { marginBottom: 8 }]} onPress={handleSave} accessibilityRole="button">
+              <LinearGradient colors={['#1a6fff','#0A84FF','#0066dd']} style={StyleSheet.absoluteFillObject} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
+              <View style={S.saveBtnSheen} />
+              <Ionicons name="add-circle" size={20} color="#fff" />
+              <Text style={S.saveBtnText}>Add Device</Text>
+            </TouchableOpacity>
+            <View style={{ height: IOS_BOTTOM + 8 }} />
+          </ScrollView>
         </Animated.View>
       </KeyboardAvoidingView>
     </Modal>
@@ -679,6 +886,7 @@ export default function HomeScreen() {
   const [loadingFloors,   setLoadingFloors]   = useState(true);
   const [modalVisible,    setModalVisible]    = useState(false);
   const [editingFloor,    setEditingFloor]    = useState<Floor | null>(null);
+  const [addDeviceModal,  setAddDeviceModal]  = useState(false);
 
   // ── Tab-bar hide-on-scroll ────────────────────────────────────────────────
   const lastScrollY   = useRef(0);
@@ -736,13 +944,14 @@ export default function HomeScreen() {
   const activeDevices = useMemo(() => allDevices.filter(d => d.status === 'on').length, [allDevices]);
   const alertCount    = useMemo(() => allDevices.filter(d => d.status === 'error' || d.status === 'offline').length, [allDevices]);
 
-  const handleFloorSave = useCallback(async (name: string, level: number) => {
+  const handleFloorSave = useCallback(async (name: string, level: number, floorPlanUri?: string) => {
     if (editingFloor) {
-      await updateFloor(editingFloor.id, { name, level });
-      setFloorList(prev => prev.map(f => f.id === editingFloor.id ? { ...f, name, level } : f));
-      setFloors(prev => prev.map(f => f.id === editingFloor.id ? { ...f, name, level } : f));
+      await updateFloor(editingFloor.id, { name, level, floorPlanUri });
+      const patch = { name, level, ...(floorPlanUri !== undefined ? { floorPlanUri } : {}) };
+      setFloorList(prev => prev.map(f => f.id === editingFloor.id ? { ...f, ...patch } : f));
+      setFloors(prev => prev.map(f => f.id === editingFloor.id ? { ...f, ...patch } : f));
     } else {
-      const newFloor = await addFloor(name, level);
+      const newFloor = await addFloor(name, level, floorPlanUri);
       setFloorList(prev => [...prev, newFloor]);
       setFloors(prev => [...prev, newFloor]);
     }
@@ -766,6 +975,24 @@ export default function HomeScreen() {
 
   const openAddFloor = () => { setEditingFloor(null); setModalVisible(true); };
 
+  const handleAddDevice = useCallback(async (fields: {
+    name: string; type: DeviceType; floorId: string; roomName: string;
+  }) => {
+    const newDevice = await addDevice(fields);
+    setDevices(prev => [...prev, newDevice]);
+    setAllDevices(prev => [...prev, newDevice]);
+    // Update floor device counts in list
+    setFloorList(prev => prev.map(f =>
+      f.id === fields.floorId ? { ...f, deviceCount: f.deviceCount + 1 } : f,
+    ));
+    setFloors(prev => prev.map(f =>
+      f.id === fields.floorId ? { ...f, deviceCount: f.deviceCount + 1 } : f,
+    ));
+    setAddDeviceModal(false);
+    // Navigate to the floor plan to place the pin
+    router.push(`/floor-plan?floorId=${fields.floorId}&placeDeviceId=${newDevice.id}`);
+  }, []);
+
   return (
     <View style={S.root}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
@@ -785,14 +1012,14 @@ export default function HomeScreen() {
           <RecentActivity devices={filteredDevices} />
           <SafetyAlerts devices={filteredDevices} />
           <DeviceStatusOverview devices={filteredDevices} />
-          <QuickActionsBar onGoFloors={() => setActiveTab('floors')} />
+          <QuickActionsBar onGoFloors={() => setActiveTab('floors')} onAddDevice={() => setAddDeviceModal(true)} />
           <View style={{ height: IOS_BOTTOM + 110 }} />
         </ScrollView>
       </TabPanel>
 
       {/* ── FLOORS TAB ──────────────────────────────────────────────────── */}
       <TabPanel visible={activeTab === 'floors'}>
-        <FloorsNavBar onAdd={openAddFloor} />
+        <FloorsNavBar onAdd={openAddFloor} onAddDevice={() => setAddDeviceModal(true)} />
         <ScrollView style={S.scroll} contentContainerStyle={S.scrollContent}
           showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled"
           onScroll={handleScroll} scrollEventThrottle={16}>
@@ -860,6 +1087,9 @@ export default function HomeScreen() {
 
       <FloorModal visible={modalVisible} editingFloor={editingFloor}
         onClose={() => setModalVisible(false)} onSave={handleFloorSave} />
+
+      <AddDeviceModal visible={addDeviceModal} floors={floorList}
+        onClose={() => setAddDeviceModal(false)} onSave={handleAddDevice} />
     </View>
   );
 }
@@ -1045,6 +1275,23 @@ const S = StyleSheet.create({
   saveBtn:         { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, height: 56, borderRadius: 18, overflow: 'hidden', marginTop: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
   saveBtnSheen:    { position: 'absolute', top: 0, left: '15%', right: '15%', height: 1, backgroundColor: 'rgba(255,255,255,0.4)', borderRadius: 1, zIndex: 2 },
   saveBtnText:     { fontSize: 17, fontWeight: '700', color: '#fff', letterSpacing: -0.3 },
+  // Floor plan upload
+  floorPlanUploadBtn:  { height: 90, borderRadius: 16, overflow: 'hidden', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.2)', justifyContent: 'center', alignItems: 'center' },
+  floorPlanThumb:      { ...StyleSheet.absoluteFillObject as any, borderRadius: 16 },
+  floorPlanOverlay:    { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(0,0,0,0.55)', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 10 },
+  floorPlanCheckBadge: { position: 'absolute', top: 8, right: 10 },
+  floorPlanEmptyInner: { alignItems: 'center', gap: 6 },
+  floorPlanIconRing:   { width: 44, height: 44, borderRadius: 14, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(10,132,255,0.12)', borderWidth: 1, borderColor: 'rgba(10,132,255,0.3)' },
+  floorPlanUploadText: { fontSize: 14, fontWeight: '600', color: 'rgba(255,255,255,0.8)' },
+  floorPlanUploadSub:  { fontSize: 12, color: 'rgba(255,255,255,0.35)' },
+  // Add Device modal
+  addDeviceSheet:    { maxHeight: height * 0.92 },
+  deviceTypeGrid:    { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  deviceTypeBtn:     { width: (width - H_PAD * 2 - 10 * 3) / 4, height: 68, borderRadius: 16, overflow: 'hidden', justifyContent: 'center', alignItems: 'center', gap: 6, borderWidth: 1, borderColor: 'rgba(255,255,255,0.16)' },
+  deviceTypeBtnText: { fontSize: 11, fontWeight: '600', color: 'rgba(255,255,255,0.45)', textAlign: 'center' },
+  floorChipRowModal: { gap: 10, paddingBottom: 4 },
+  floorChipModal:    { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 18, overflow: 'hidden', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.16)', gap: 7 },
+  floorChipModalText:{ fontSize: 14, fontWeight: '600', color: 'rgba(255,255,255,0.55)' },
   // Tab bar
   tabOuter:      { position: 'absolute', bottom: IOS_BOTTOM, left: H_PAD, right: H_PAD, zIndex: 30 },
   tabBloom:      { position: 'absolute', top: 4, left: 20, right: 20, height: 60, borderRadius: 40, backgroundColor: 'rgba(40,90,255,0.16)', shadowColor: '#3060ff', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.5, shadowRadius: 26 },

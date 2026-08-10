@@ -8,10 +8,11 @@
 
 import { Colors } from '@/constants/colors';
 import {
-  CAMERA_DEVICE_TYPES,
-  getFloorPlanConfig,
-  MULTI_SWITCH_TYPES,
-  SAFETY_INFO,
+    CAMERA_DEVICE_TYPES,
+    FLOOR_PLAN_CONFIGS,
+    getFloorPlanConfig,
+    MULTI_SWITCH_TYPES,
+    SAFETY_INFO
 } from '@/data/floorPlanData';
 import { getDevices, getFloors, toggleDevice } from '@/services/deviceService';
 import { Device, DeviceStatus, DeviceType, Floor } from '@/types/device';
@@ -21,19 +22,19 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Animated,
-  Dimensions,
-  Image,
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Switch,
-  Text,
-  TouchableOpacity,
-  View,
+    Animated,
+    Dimensions,
+    Image,
+    Modal,
+    Platform,
+    Pressable,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    Switch,
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
@@ -194,7 +195,7 @@ function FloorSelectorBar({
 // DEVICE PIN
 // ═══════════════════════════════════════════════════════════════════════════════
 function DevicePin({
-  device, x, y, canvasWidth, canvasHeight, onPress,
+  device, x, y, canvasWidth, canvasHeight, onPress, dimmed = false,
 }: {
   device: Device;
   x: number;   // 0–100 %
@@ -202,6 +203,7 @@ function DevicePin({
   canvasWidth: number;
   canvasHeight: number;
   onPress: () => void;
+  dimmed?: boolean;
 }) {
   const scaleAnim  = useRef(new Animated.Value(1)).current;
   const pulseAnim  = useRef(new Animated.Value(1)).current;
@@ -237,7 +239,7 @@ function DevicePin({
     <Animated.View
       style={[
         S.pinAbsolute,
-        { left: pinX, top: pinY, transform: [{ scale: scaleAnim }] },
+        { left: pinX, top: pinY, transform: [{ scale: scaleAnim }], opacity: dimmed ? 0.35 : 1 },
       ]}
     >
       {/* Pulse ring for active devices */}
@@ -539,43 +541,74 @@ function DeviceDetailSheet({
 // FLOOR PLAN CANVAS
 // ═══════════════════════════════════════════════════════════════════════════════
 function FloorPlanCanvas({
-  floorId, devices, onPinPress,
+  floorId, devices, onPinPress, placingDevice, onPlacePin,
 }: {
   floorId: string;
   devices: Device[];
   onPinPress: (device: Device) => void;
+  /** When set, the canvas is in placement mode for this device */
+  placingDevice?: Device | null;
+  /** Called with (x%, y%) when user taps the canvas in placement mode */
+  onPlacePin?: (x: number, y: number) => void;
 }) {
+  // Re-read config on each render so we always get the latest (including user uploads)
   const config = getFloorPlanConfig(floorId);
+  // Also read from FLOOR_PLAN_CONFIGS directly to pick up the image even for floors
+  // that were just created with an uploaded image
+  const floor = FLOOR_PLAN_CONFIGS.find((c) => c.floorId === floorId);
+  const canvasW = config?.canvasWidth ?? floor?.canvasWidth ?? 360;
+  const canvasH = config?.canvasHeight ?? floor?.canvasHeight ?? 432;
+  const image   = config?.image ?? floor?.image ?? null;
+  const pins    = config?.pins ?? floor?.pins ?? [];
 
-  if (!config) {
+  const handleCanvasTap = useCallback((e: GestureResponderEvent) => {
+    if (!placingDevice || !onPlacePin) return;
+    const { locationX, locationY } = e.nativeEvent;
+    const xPct = Math.min(100, Math.max(0, (locationX / canvasW) * 100));
+    const yPct = Math.min(100, Math.max(0, (locationY / canvasH) * 100));
+    onPlacePin(xPct, yPct);
+  }, [placingDevice, onPlacePin, canvasW, canvasH]);
+
+  if (!image) {
     return (
       <View style={S.emptyCanvas}>
         <Ionicons name="map-outline" size={48} color="rgba(255,255,255,0.2)" />
-        <Text style={S.emptyCanvasText}>No floor plan available</Text>
-        <Text style={S.emptyCanvasSub}>Floor plan for this level is not configured.</Text>
+        <Text style={S.emptyCanvasText}>No floor plan uploaded</Text>
+        <Text style={S.emptyCanvasSub}>Edit this floor to upload a floor plan image.</Text>
       </View>
     );
   }
 
-  const canvasW = config.canvasWidth;
-  const canvasH = config.canvasHeight;
+  // Image source: file:// URI string or require() number
+  const imageSource = typeof image === 'string' ? { uri: image } : image;
 
   return (
     <View style={S.canvasWrapper}>
-      {/* Floor plan image */}
-      <View style={[S.canvasInner, { width: canvasW, height: canvasH }]}>
-        <Image
-          source={config.image}
-          style={{ width: canvasW, height: canvasH }}
-          resizeMode="cover"
-        />
-        {/* Tint overlay to darken the white floor plan and match dark theme */}
-        <View style={S.canvasTint} />
+      <Pressable
+        style={[S.canvasInner, { width: canvasW, height: canvasH }]}
+        onPress={handleCanvasTap}
+        accessibilityLabel={placingDevice ? `Tap to place ${placingDevice.name}` : undefined}
+      >
+        <Image source={imageSource} style={{ width: canvasW, height: canvasH }} resizeMode="cover" />
+        {/* Tint overlay */}
+        <View style={[S.canvasTint, placingDevice && S.canvasTintPlacing]} />
 
-        {/* Device pins */}
-        {config.pins.map((pin) => {
+        {/* Placement crosshair hint */}
+        {placingDevice && (
+          <View style={S.placingOverlay} pointerEvents="none">
+            <View style={S.placingHint}>
+              <Ionicons name="add-circle" size={32} color="#0A84FF" />
+              <Text style={S.placingHintText}>Tap to place "{placingDevice.name}"</Text>
+            </View>
+          </View>
+        )}
+
+        {/* Existing device pins */}
+        {pins.map((pin) => {
           const device = devices.find((d) => d.id === pin.deviceId);
           if (!device) return null;
+          // Dim non-placing pins when in placement mode
+          const dimmed = placingDevice && placingDevice.id !== pin.deviceId;
           return (
             <DevicePin
               key={pin.deviceId}
@@ -584,13 +617,14 @@ function FloorPlanCanvas({
               y={pin.y}
               canvasWidth={canvasW}
               canvasHeight={canvasH}
-              onPress={() => onPinPress(device)}
+              onPress={() => { if (!placingDevice) onPinPress(device); }}
+              dimmed={dimmed ?? false}
             />
           );
         })}
-      </View>
+      </Pressable>
 
-      <Legend />
+      {!placingDevice && <Legend />}
     </View>
   );
 }
@@ -599,15 +633,25 @@ function FloorPlanCanvas({
 // DEVICE LIST (below the map)
 // ═══════════════════════════════════════════════════════════════════════════════
 function DeviceList({
-  devices, onPress,
+  devices, onPress, onPlacePin, floorHasPlan,
 }: {
   devices: Device[];
   onPress: (device: Device) => void;
+  onPlacePin: (device: Device) => void;
+  floorHasPlan: boolean;
 }) {
   if (devices.length === 0) return null;
   return (
     <View style={S.deviceListSection}>
-      <Text style={S.deviceListTitle}>Devices on this floor</Text>
+      <View style={S.deviceListHeader}>
+        <Text style={S.deviceListTitle}>Devices on this floor</Text>
+        {floorHasPlan && (
+          <View style={S.deviceListHint}>
+            <Ionicons name="location-outline" size={12} color="rgba(10,132,255,0.8)" />
+            <Text style={S.deviceListHintText}>Tap pin to place</Text>
+          </View>
+        )}
+      </View>
       <View style={S.deviceListCard}>
         <BlurView intensity={38} tint="dark" style={S.deviceListBlur}>
           <View style={S.deviceListSpecular} />
@@ -644,6 +688,18 @@ function DeviceList({
                         {getStatusLabel(d.status)}
                       </Text>
                     </View>
+                    {/* Place pin button — only shown when floor has a plan */}
+                    {floorHasPlan && (
+                      <TouchableOpacity
+                        style={S.deviceRowPinBtn}
+                        onPress={(e) => { e.stopPropagation(); onPlacePin(d); }}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Place ${d.name} on floor plan`}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        <Ionicons name="location-outline" size={16} color="#0A84FF" />
+                      </TouchableOpacity>
+                    )}
                     <Ionicons name="chevron-forward" size={14} color="rgba(255,255,255,0.25)" />
                   </TouchableOpacity>
                   {i < devices.length - 1 && <View style={S.deviceRowSep} />}
@@ -661,28 +717,38 @@ function DeviceList({
 // ROOT SCREEN
 // ═══════════════════════════════════════════════════════════════════════════════
 export default function FloorPlanScreen() {
-  const params                                               = useLocalSearchParams<{ floorId?: string }>();
-  const [floors,         setFloors]         = useState<Floor[]>([]);
-  const [devices,        setDevices]        = useState<Device[]>([]);
-  const [selectedFloor,  setSelectedFloor]  = useState<string>('');
-  const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
-  const [sheetVisible,   setSheetVisible]   = useState(false);
+  const params = useLocalSearchParams<{ floorId?: string; placeDeviceId?: string }>();
+
+  const [floors,          setFloors]          = useState<Floor[]>([]);
+  const [devices,         setDevices]         = useState<Device[]>([]);
+  const [selectedFloor,   setSelectedFloor]   = useState<string>('');
+  const [selectedDevice,  setSelectedDevice]  = useState<Device | null>(null);
+  const [sheetVisible,    setSheetVisible]    = useState(false);
+  // Pin placement state
+  const [placingDevice,   setPlacingDevice]   = useState<Device | null>(null);
+  // Trigger a canvas re-render after a pin is placed
+  const [pinVersion,      setPinVersion]      = useState(0);
 
   useEffect(() => {
     Promise.all([getFloors(), getDevices()]).then(([f, d]) => {
       setFloors(f);
       setDevices(d);
-      // Pre-select floor from navigation param, or default to first floor
       const target = params.floorId && f.some((fl) => fl.id === params.floorId)
         ? params.floorId
         : f.length > 0 ? f[0].id : '';
       setSelectedFloor(target);
+
+      // If we arrived with a device to place, enter placement mode
+      if (params.placeDeviceId) {
+        const dev = d.find((x) => x.id === params.placeDeviceId);
+        if (dev) setPlacingDevice(dev);
+      }
     });
   }, []);
 
   const floorDevices = useMemo(
     () => devices.filter((d) => d.floorId === selectedFloor),
-    [devices, selectedFloor],
+    [devices, selectedFloor, pinVersion],
   );
 
   const currentFloor = useMemo(
@@ -699,22 +765,27 @@ export default function FloorPlanScreen() {
     const updated = await toggleDevice(deviceId);
     if (updated) {
       setDevices((prev) => prev.map((d) => (d.id === deviceId ? updated : d)));
-      // Keep sheet in sync
       setSelectedDevice((prev) => (prev?.id === deviceId ? updated : prev));
     }
   }, []);
+
+  /** Called when user taps the canvas in placement mode */
+  const handlePlacePin = useCallback((x: number, y: number) => {
+    if (!placingDevice || !selectedFloor) return;
+    setDevicePinPosition(selectedFloor, placingDevice.id, x, y);
+    setPinVersion((v) => v + 1); // force canvas re-render
+    setPlacingDevice(null);
+  }, [placingDevice, selectedFloor]);
 
   return (
     <View style={S.root}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
-      {/* Background gradient */}
       <LinearGradient
         colors={['#06091a', '#0b1530', '#0d1f4a', '#06091a']}
         locations={[0, 0.35, 0.65, 1]}
         style={StyleSheet.absoluteFillObject}
       />
-      {/* Background orbs */}
       <View style={S.orb1} />
       <View style={S.orb2} />
       <View style={S.orb3} />
@@ -722,30 +793,47 @@ export default function FloorPlanScreen() {
       {/* Nav bar */}
       <FloorPlanNavBar floor={currentFloor} />
 
+      {/* Placement mode banner */}
+      {placingDevice && (
+        <View style={S.placingBanner}>
+          <BlurView intensity={55} tint="dark" style={StyleSheet.absoluteFillObject} />
+          <View style={S.placingBannerContent}>
+            <Ionicons name="location-outline" size={18} color="#0A84FF" />
+            <Text style={S.placingBannerText} numberOfLines={1}>
+              Tap the floor plan to place "{placingDevice.name}"
+            </Text>
+            <TouchableOpacity onPress={() => setPlacingDevice(null)}
+              accessibilityLabel="Cancel placement" accessibilityRole="button">
+              <Ionicons name="close-circle" size={20} color="rgba(255,255,255,0.55)" />
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
       {/* Floor selector */}
       {floors.length > 0 && (
         <FloorSelectorBar
           floors={floors}
           selectedId={selectedFloor}
-          onSelect={setSelectedFloor}
+          onSelect={(id) => { setSelectedFloor(id); setPlacingDevice(null); }}
         />
       )}
 
-      {/* Main scroll content */}
+      {/* Main scroll content — disable scroll in placement mode so taps register */}
       <ScrollView
         style={S.scroll}
         contentContainerStyle={S.scrollContent}
         showsVerticalScrollIndicator={false}
+        scrollEnabled={!placingDevice}
       >
-        {/* Stats bar */}
         <StatsBar devices={floorDevices} />
 
-        {/* Floor plan canvas */}
         <View style={S.section}>
           <Text style={S.sectionTitle}>Floor Map</Text>
           <View style={S.canvasCard}>
             <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFillObject} />
-            <View style={S.canvasCardBorder} />
+            <View style={[S.canvasCardBorder, placingDevice && { borderColor: 'rgba(10,132,255,0.5)' }]} />
+            {/* Disable horizontal scroll while placing so the tap registers */}
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -753,23 +841,32 @@ export default function FloorPlanScreen() {
               maximumZoomScale={3}
               minimumZoomScale={0.8}
               bouncesZoom
+              scrollEnabled={!placingDevice}
             >
               <FloorPlanCanvas
+                key={`${selectedFloor}-${pinVersion}`}
                 floorId={selectedFloor}
                 devices={floorDevices}
                 onPinPress={handlePinPress}
+                placingDevice={placingDevice}
+                onPlacePin={handlePlacePin}
               />
             </ScrollView>
           </View>
         </View>
 
-        {/* Device list */}
-        <DeviceList devices={floorDevices} onPress={handlePinPress} />
+        {!placingDevice && (
+          <DeviceList
+            devices={floorDevices}
+            onPress={handlePinPress}
+            onPlacePin={(device) => setPlacingDevice(device)}
+            floorHasPlan={!!(FLOOR_PLAN_CONFIGS.find(c => c.floorId === selectedFloor)?.image)}
+          />
+        )}
 
         <View style={{ height: IOS_BOTTOM + 40 }} />
       </ScrollView>
 
-      {/* Detail sheet */}
       <DeviceDetailSheet
         device={selectedDevice}
         visible={sheetVisible}
@@ -851,15 +948,26 @@ const S = StyleSheet.create({
   emptyCanvasText: { fontSize: 18, fontWeight: '700', color: 'rgba(255,255,255,0.5)' },
   emptyCanvasSub:  { fontSize: 14, color: 'rgba(255,255,255,0.28)', textAlign: 'center' },
 
-  // ── Device list ────────────────────────────────────────────────────────────
+  // ── Placing mode ──────────────────────────────────────────────────────────
+  canvasTintPlacing: { backgroundColor: 'rgba(6,9,26,0.20)' },
+  placingOverlay:    { ...StyleSheet.absoluteFillObject, justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 18 },
+  placingHint:       { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(10,132,255,0.85)', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 22 },
+  placingHintText:   { fontSize: 13, fontWeight: '600', color: '#fff', flexShrink: 1 },
+  placingBanner:     { marginHorizontal: H_PAD, marginBottom: 6, borderRadius: 16, overflow: 'hidden', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(10,132,255,0.45)', zIndex: 10 },
+  placingBannerContent: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 11, gap: 10, borderTopWidth: 1, borderTopColor: 'rgba(10,132,255,0.35)', borderRadius: 16 },
+  placingBannerText: { flex: 1, fontSize: 13, fontWeight: '600', color: '#0A84FF' },
   deviceListSection: { marginBottom: 24 },
-  deviceListTitle:   { fontSize: 18, fontWeight: '700', color: '#fff', letterSpacing: -0.4, marginBottom: 12 },
+  deviceListHeader:  { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  deviceListTitle:   { fontSize: 18, fontWeight: '700', color: '#fff', letterSpacing: -0.4 },
+  deviceListHint:    { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(10,132,255,0.12)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(10,132,255,0.3)' },
+  deviceListHintText:{ fontSize: 11, fontWeight: '600', color: '#0A84FF' },
   deviceListCard:    { borderRadius: 20, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.32, shadowRadius: 20, elevation: 12 },
   deviceListBlur:    { borderRadius: 20, overflow: 'hidden', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.18)' },
   deviceListSpecular:{ position: 'absolute', top: 0, left: '10%', right: '10%', height: 1.2, borderRadius: 1, backgroundColor: 'rgba(255,255,255,0.45)', zIndex: 2 },
   deviceListInner:   { borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.16)', borderRadius: 20 },
   deviceRow:      { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, gap: 12 },
   deviceRowSep:   { height: StyleSheet.hairlineWidth, backgroundColor: 'rgba(255,255,255,0.09)', marginLeft: 64 },
+  deviceRowPinBtn:{ width: 28, height: 28, borderRadius: 9, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(10,132,255,0.12)', borderWidth: 1, borderColor: 'rgba(10,132,255,0.3)' },
   deviceRowIcon:  { width: 40, height: 40, borderRadius: 13, justifyContent: 'center', alignItems: 'center', borderWidth: 1 },
   deviceRowBody:  { flex: 1 },
   deviceRowName:  { fontSize: 15, fontWeight: '600', color: '#fff', letterSpacing: -0.2 },

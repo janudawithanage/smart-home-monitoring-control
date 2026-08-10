@@ -9,7 +9,7 @@ export let FLOORS: Floor[] = [
 /** Internal setter — used only by deviceService to keep the reference in sync. */
 export function setFLOORS(next: Floor[]) { FLOORS = next; }
 
-export const DEVICES: Device[] = [
+export let DEVICES: Device[] = [
   // --- Ground Floor ---
   {
     id: 'd1',
@@ -167,3 +167,6 @@ export const DEVICES: Device[] = [
     lastUpdated: new Date().toISOString(),
   },
 ];
+
+/** Internal setter — used only by deviceService to keep the reference in sync. */
+export function setDEVICES(next: Device[]) { DEVICES = next; }
