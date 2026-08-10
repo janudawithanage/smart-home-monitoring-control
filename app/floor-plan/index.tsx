@@ -12,7 +12,8 @@ import {
     FLOOR_PLAN_CONFIGS,
     getFloorPlanConfig,
     MULTI_SWITCH_TYPES,
-    SAFETY_INFO
+    SAFETY_INFO,
+    setDevicePin
 } from '@/data/floorPlanData';
 import { getDevices, getFloors, toggleDevice } from '@/services/deviceService';
 import { Device, DeviceStatus, DeviceType, Floor } from '@/types/device';
@@ -772,7 +773,7 @@ export default function FloorPlanScreen() {
   /** Called when user taps the canvas in placement mode */
   const handlePlacePin = useCallback((x: number, y: number) => {
     if (!placingDevice || !selectedFloor) return;
-    setDevicePinPosition(selectedFloor, placingDevice.id, x, y);
+    setDevicePin(selectedFloor, placingDevice.id, x, y);
     setPinVersion((v) => v + 1); // force canvas re-render
     setPlacingDevice(null);
   }, [placingDevice, selectedFloor]);
