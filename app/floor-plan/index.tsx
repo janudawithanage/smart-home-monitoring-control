@@ -25,6 +25,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
     Animated,
     Dimensions,
+    GestureResponderEvent,
     Image,
     Modal,
     Platform,
@@ -55,6 +56,8 @@ const TYPE_ICON: Record<DeviceType, keyof typeof Ionicons.glyphMap> = {
   tv:         'tv-outline',
   speaker:    'volume-high-outline',
   outlet:     'flash-outline',
+  iron:       'water-outline',
+  multiSwitch:'apps-outline',
 };
 const TYPE_ICON_FILLED: Record<DeviceType, keyof typeof Ionicons.glyphMap> = {
   light:      'bulb',
@@ -65,6 +68,8 @@ const TYPE_ICON_FILLED: Record<DeviceType, keyof typeof Ionicons.glyphMap> = {
   tv:         'tv',
   speaker:    'volume-high',
   outlet:     'flash',
+  iron:       'water',
+  multiSwitch:'apps',
 };
 
 // ─── Status helpers ────────────────────────────────────────────────────────────
@@ -758,8 +763,7 @@ export default function FloorPlanScreen() {
   );
 
   const handlePinPress = useCallback((device: Device) => {
-    setSelectedDevice(device);
-    setSheetVisible(true);
+    router.push(`/device/${device.id}`);
   }, []);
 
   const handleToggle = useCallback(async (deviceId: string) => {

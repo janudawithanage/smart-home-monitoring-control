@@ -47,6 +47,7 @@ export let FLOOR_PLAN_CONFIGS: FloorPlanConfig[] = [
       { deviceId: 'd4', x: 25, y: 50 },
       { deviceId: 'd5', x: 80, y: 55 },
       { deviceId: 'd6', x: 16, y: 78 },
+      { deviceId: 'd16', x: 60, y: 75 },
     ],
   },
   {
@@ -179,5 +180,10 @@ export const SAFETY_INFO: Record<string, { title: string; body: string; icon: st
     title: 'Power Safety',
     body: 'Ensure devices plugged into this outlet are rated for the circuit capacity. Unplug appliances when not in use.',
     icon: 'flash-outline',
+  },
+  iron: {
+    title: '🔥 Iron Safety',
+    body: 'Always unplug the iron after use. Auto cutoff activates after the set duration. Never leave unattended.',
+    icon: 'warning-outline',
   },
 };

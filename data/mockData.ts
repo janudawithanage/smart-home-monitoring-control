@@ -1,7 +1,7 @@
 import { Device, Floor } from '@/types/device';
 
 export let FLOORS: Floor[] = [
-  { id: 'f0', name: 'Ground Floor', level: 0, deviceCount: 6, activeDeviceCount: 4 },
+  { id: 'f0', name: 'Ground Floor', level: 0, deviceCount: 7, activeDeviceCount: 4 },
   { id: 'f1', name: 'First Floor',  level: 1, deviceCount: 5, activeDeviceCount: 2 },
   { id: 'f2', name: 'Second Floor', level: 2, deviceCount: 4, activeDeviceCount: 1 },
 ];
@@ -164,6 +164,26 @@ export let DEVICES: Device[] = [
     status: 'off',
     floorId: 'f2',
     roomName: 'Guest Room',
+    lastUpdated: new Date().toISOString(),
+  },
+  {
+    id: 'd16',
+    name: 'Laundry Iron',
+    type: 'iron',
+    status: 'off',
+    floorId: 'f0',
+    roomName: 'Laundry',
+    value: 0,
+    unit: 'min',
+    lastUpdated: new Date().toISOString(),
+  },
+  {
+    id: 'd17',
+    name: 'Office Multi-Switch',
+    type: 'multiSwitch',
+    status: 'on',
+    floorId: 'f2',
+    roomName: 'Study',
     lastUpdated: new Date().toISOString(),
   },
 ];

@@ -54,5 +54,7 @@ export const Colors = {
     tv: '#818cf8',
     speaker: '#e879f9',
     outlet: '#94a3b8',
+    iron: '#fb923c',
+    multiSwitch: '#2dd4bf',
   },
 } as const;

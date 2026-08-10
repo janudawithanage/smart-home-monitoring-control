@@ -6,7 +6,9 @@ export type DeviceType =
   | 'fan'
   | 'tv'
   | 'speaker'
-  | 'outlet';
+  | 'outlet'
+  | 'iron'
+  | 'multiSwitch';
 
 export type DeviceStatus = 'on' | 'off' | 'error' | 'offline';
 

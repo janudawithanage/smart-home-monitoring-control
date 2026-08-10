@@ -42,6 +42,7 @@ const TYPE_ICON: Record<DeviceType, keyof typeof Ionicons.glyphMap> = {
   light: 'bulb-outline', thermostat: 'thermometer-outline', lock: 'lock-closed-outline',
   camera: 'camera-outline', fan: 'refresh-outline', tv: 'tv-outline',
   speaker: 'volume-high-outline', outlet: 'flash-outline',
+  iron: 'water-outline', multiSwitch: 'apps-outline',
 };
 
 interface DeviceCategory {
