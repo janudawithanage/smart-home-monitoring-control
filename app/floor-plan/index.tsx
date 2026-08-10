@@ -893,7 +893,7 @@ const S = StyleSheet.create({
   navOuter:    { paddingHorizontal: H_PAD, paddingTop: IOS_TOP, paddingBottom: 10, zIndex: 20 },
   navBloom:    { position: 'absolute', top: IOS_TOP - 10, left: H_PAD + 20, right: H_PAD + 20, height: 70, borderRadius: 40, backgroundColor: 'rgba(60,110,255,0.16)', shadowColor: '#4080ff', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.5, shadowRadius: 26 },
   navPill:     { borderRadius: 22, overflow: 'hidden', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.22)', shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.45, shadowRadius: 24, elevation: 16 },
-  navSpecular: { position: 'absolute', top: 0, left: '12%', right: '12%', height: 1.2, borderRadius: 1, backgroundColor: 'rgba(255,255,255,0.55)', zIndex: 2 },
+  navSpecular: { position: 'absolute', top: 0, left: '12%', right: '12%', height: 0, borderRadius: 1, backgroundColor: 'rgba(255,255,255,0.55)', zIndex: 2 },
   navContent:  { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 11, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.18)', borderRadius: 22, gap: 10 },
   navBackBtn:  { width: 36, height: 36, borderRadius: 11, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.07)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
   navCenter:   { flex: 1, alignItems: 'center', gap: 4 },
@@ -945,7 +945,7 @@ const S = StyleSheet.create({
   pinPulse:     { position: 'absolute', width: PIN_SIZE, height: PIN_SIZE, borderRadius: PIN_SIZE / 2, borderWidth: 1.5, opacity: 0.55 },
   pinErrorRing: { position: 'absolute', width: PIN_SIZE + 4, height: PIN_SIZE + 4, borderRadius: (PIN_SIZE + 4) / 2, borderWidth: 1.5, opacity: 0.7, top: -2, left: -2 },
   pinBtn:   { width: PIN_SIZE, height: PIN_SIZE, borderRadius: PIN_SIZE / 2, justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, overflow: 'hidden' },
-  pinSpecular: { position: 'absolute', top: 0, left: '25%', right: '25%', height: 1, backgroundColor: 'rgba(255,255,255,0.5)', borderRadius: 1, zIndex: 2 },
+  pinSpecular: { position: 'absolute', top: 0, left: '25%', right: '25%', height: 0, backgroundColor: 'rgba(255,255,255,0.5)', borderRadius: 1, zIndex: 2 },
   pinDot:   { position: 'absolute', bottom: 4, right: 4, width: 9, height: 9, borderRadius: 5, borderWidth: 1.5, borderColor: '#06091a', zIndex: 3 },
 
   // ── Empty canvas ───────────────────────────────────────────────────────────
@@ -968,7 +968,7 @@ const S = StyleSheet.create({
   deviceListHintText:{ fontSize: 11, fontWeight: '600', color: '#0A84FF' },
   deviceListCard:    { borderRadius: 20, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.32, shadowRadius: 20, elevation: 12 },
   deviceListBlur:    { borderRadius: 20, overflow: 'hidden', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.18)' },
-  deviceListSpecular:{ position: 'absolute', top: 0, left: '10%', right: '10%', height: 1.2, borderRadius: 1, backgroundColor: 'rgba(255,255,255,0.45)', zIndex: 2 },
+  deviceListSpecular:{ position: 'absolute', top: 0, left: '10%', right: '10%', height: 0, borderRadius: 1, backgroundColor: 'rgba(255,255,255,0.45)', zIndex: 2 },
   deviceListInner:   { borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.16)', borderRadius: 20 },
   deviceRow:      { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, gap: 12 },
   deviceRowSep:   { height: StyleSheet.hairlineWidth, backgroundColor: 'rgba(255,255,255,0.09)', marginLeft: 64 },
