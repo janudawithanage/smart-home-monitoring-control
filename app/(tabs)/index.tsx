@@ -1227,6 +1227,508 @@ function SecurityActivityLog() {
   );
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// ENERGY TAB COMPONENTS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+type TimeFilter = 'today' | 'week' | 'month';
+
+// Human-readable device type labels
+const DEVICE_TYPE_LABELS: Record<string, string> = {
+  light:       'Smart Light',
+  thermostat:  'Air Conditioner',
+  lock:        'Smart Lock',
+  camera:      'Security Camera',
+  fan:         'Ceiling Fan',
+  tv:          'Smart TV',
+  speaker:     'Smart Speaker',
+  outlet:      'Smart Outlet',
+  iron:        'Clothes Iron',
+  multiSwitch: 'Switch Panel',
+};
+
+interface EnergyData {
+  deviceId: string;
+  deviceName: string;
+  deviceType: DeviceType;
+  kwh: number;
+  cost: number;
+  color: string;
+  percentage: number;
+}
+
+interface SafetyCutoff {
+  id: string;
+  deviceName: string;
+  timestamp: string;
+  reason: string;
+  duration: number;
+}
+
+function generateEnergyData(devices: Device[], filter: TimeFilter): EnergyData[] {
+  const multiplier = filter === 'today' ? 1 : filter === 'week' ? 7 : 30;
+  const data: EnergyData[] = devices
+    .filter(d => d.status === 'on' || d.type === 'iron' || d.type === 'outlet')
+    .map(d => {
+      const baseKwh = d.type === 'iron' ? 1.2 : d.type === 'outlet' ? 0.8 : d.type === 'light' ? 0.06 :
+                      d.type === 'fan' ? 0.075 : d.type === 'tv' ? 0.15 : d.type === 'thermostat' ? 2.5 : 0.1;
+      const kwh = baseKwh * multiplier * (0.7 + Math.random() * 0.6);
+      const cost = kwh * 0.15;
+      const color = (Colors.device as Record<string, string>)[d.type] || Colors.accent.blue;
+      return { deviceId: d.id, deviceName: d.name, deviceType: d.type, kwh, cost, color, percentage: 0 };
+    });
+  const totalKwh = data.reduce((sum, d) => sum + d.kwh, 0);
+  return data.map(d => ({ ...d, percentage: totalKwh > 0 ? (d.kwh / totalKwh) * 100 : 0 })).sort((a, b) => b.kwh - a.kwh);
+}
+
+function generateSafetyCutoffs(devices: Device[]): SafetyCutoff[] {
+  const ironDevices = devices.filter(d => d.type === 'iron');
+  const cutoffs: SafetyCutoff[] = [];
+  ironDevices.forEach(device => {
+    const count = 3 + Math.floor(Math.random() * 3);
+    for (let i = 0; i < count; i++) {
+      const daysAgo = Math.floor(Math.random() * 30);
+      const date = new Date();
+      date.setDate(date.getDate() - daysAgo);
+      date.setHours(Math.floor(Math.random() * 12) + 8, Math.floor(Math.random() * 60));
+      cutoffs.push({
+        id: `${device.id}-cutoff-${i}`,
+        deviceName: device.name,
+        timestamp: date.toISOString(),
+        reason: 'Safety timeout reached',
+        duration: 30 + Math.floor(Math.random() * 90),
+      });
+    }
+  });
+  return cutoffs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+}
+
+function formatEnergyDate(iso: string): string {
+  const date = new Date(iso);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  if (diffDays === 0) return 'Today at ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  if (diffDays === 1) return 'Yesterday at ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  if (diffDays < 7) return date.toLocaleDateString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' });
+  return date.toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
+function EnergyNavBar() {
+  return (
+    <View style={S.navOuter}>
+      <View style={S.navBloom} />
+      <BlurView intensity={55} tint="dark" style={S.navPill}>
+        <View style={S.navSpecular} />
+        <View style={S.navContent}>
+          <View style={S.navLeft}>
+            <View style={S.navLogoRing}>
+              <Image source={require('@/assets/images/logo.png')} style={S.navLogoImg} resizeMode="contain" />
+            </View>
+            <Text style={S.navBrand}>Power Usage</Text>
+          </View>
+          <TouchableOpacity style={S.navIconBtn} accessibilityLabel="Energy settings">
+            <BlurView intensity={40} tint="dark" style={S.navIconGlass}>
+              <Ionicons name="options-outline" size={20} color="rgba(255,255,255,0.88)" />
+            </BlurView>
+          </TouchableOpacity>
+        </View>
+      </BlurView>
+    </View>
+  );
+}
+
+// ─── Hero Banner Card ────────────────────────────────────────────────────────
+function EnergyHeroCard({ totalKwh, totalCost, filter }: {
+  totalKwh: number; totalCost: number; filter: TimeFilter;
+}) {
+  const periodLabel = filter === 'today' ? 'Today' : filter === 'week' ? 'This Week' : 'This Month';
+  return (
+    <View style={S.eHeroCard}>
+      <LinearGradient
+        colors={['rgba(255,214,10,0.18)', 'rgba(10,132,255,0.18)', 'rgba(0,0,0,0)']}
+        style={StyleSheet.absoluteFillObject}
+        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+      />
+      <BlurView intensity={42} tint="dark" style={StyleSheet.absoluteFillObject} />
+      <View style={S.eHeroBorder} />
+      <View style={S.eHeroContent}>
+        <View style={S.eHeroLeft}>
+          <Text style={S.eHeroPeriod}>{periodLabel}</Text>
+          <Text style={S.eHeroKwh}>{totalKwh.toFixed(1)}</Text>
+          <Text style={S.eHeroUnit}>kilowatt-hours used</Text>
+        </View>
+        <View style={S.eHeroRight}>
+          <View style={S.eHeroCostBox}>
+            <Ionicons name="cash-outline" size={16} color="#30D158" style={{ marginBottom: 4 }} />
+            <Text style={S.eHeroCostLabel}>Estimated Bill</Text>
+            <Text style={S.eHeroCostValue}>${totalCost.toFixed(2)}</Text>
+          </View>
+          <View style={[S.eHeroCostBox, { borderColor: 'rgba(255,214,10,0.3)', marginTop: 10 }]}>
+            <Ionicons name="trending-down-outline" size={16} color="#FFD60A" style={{ marginBottom: 4 }} />
+            <Text style={S.eHeroCostLabel}>Rate</Text>
+            <Text style={[S.eHeroCostValue, { color: '#FFD60A' }]}>$0.15/kWh</Text>
+          </View>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+// ─── Quick Stats Strip ───────────────────────────────────────────────────────
+function EnergyStatChip({ icon, label, value, color }: {
+  icon: keyof typeof Ionicons.glyphMap; label: string; value: string; color: string;
+}) {
+  return (
+    <View style={S.eStatChip}>
+      <BlurView intensity={36} tint="dark" style={StyleSheet.absoluteFillObject} />
+      <View style={[S.eStatChipBorder, { borderColor: `${color}30` }]} />
+      <View style={[S.eStatChipIcon, { backgroundColor: `${color}18` }]}>
+        <Ionicons name={icon} size={18} color={color} />
+      </View>
+      <Text style={S.eStatChipValue}>{value}</Text>
+      <Text style={S.eStatChipLabel}>{label}</Text>
+    </View>
+  );
+}
+
+// ─── Bar Chart ───────────────────────────────────────────────────────────────
+function EnergyBarChart({ data }: { data: EnergyData[] }) {
+  const chartData = data.slice(0, 8);
+  if (chartData.length === 0) {
+    return (
+      <View style={S.eChartCard}>
+        <BlurView intensity={38} tint="dark" style={StyleSheet.absoluteFillObject} />
+        <Text style={S.eChartEmpty}>No devices are currently tracked.</Text>
+      </View>
+    );
+  }
+  const maxKwh = Math.max(...chartData.map(d => d.kwh));
+  return (
+    <View style={S.eChartCard}>
+      <BlurView intensity={38} tint="dark" style={StyleSheet.absoluteFillObject} />
+      <View style={S.eChartTopLine} />
+      {/* Y-axis guide labels */}
+      <View style={S.eChartYAxis}>
+        <Text style={S.eChartYLabel}>{maxKwh.toFixed(1)} kWh</Text>
+        <Text style={S.eChartYLabel}>{(maxKwh / 2).toFixed(1)} kWh</Text>
+        <Text style={S.eChartYLabel}>0</Text>
+      </View>
+      <View style={S.eChartBarsWrap}>
+        {chartData.map(device => {
+          const barPct = maxKwh > 0 ? (device.kwh / maxKwh) : 0;
+          const shortName = device.deviceName.length > 9
+            ? device.deviceName.substring(0, 8) + '…'
+            : device.deviceName;
+          const friendlyType = DEVICE_TYPE_LABELS[device.deviceType] ?? device.deviceType;
+          return (
+            <View key={device.deviceId} style={S.eChartBarCol}>
+              <Text style={S.eChartBarKwh}>{device.kwh.toFixed(1)}</Text>
+              <View style={S.eChartBarTrack}>
+                <View style={[S.eChartBarFill, { flex: barPct }]}>
+                  <LinearGradient
+                    colors={[device.color, `${device.color}99`]}
+                    style={StyleSheet.absoluteFillObject}
+                    start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }}
+                  />
+                </View>
+                <View style={{ flex: 1 - barPct }} />
+              </View>
+              <Text style={S.eChartBarName} numberOfLines={1}>{shortName}</Text>
+              <Text style={S.eChartBarType} numberOfLines={1}>{friendlyType}</Text>
+            </View>
+          );
+        })}
+      </View>
+      <Text style={S.eChartFootnote}>Units in kilowatt-hours (kWh) · higher bars = more electricity used</Text>
+    </View>
+  );
+}
+
+// ─── Device Usage Row Card ───────────────────────────────────────────────────
+function DeviceUsageRow({ device, rank }: { device: EnergyData; rank: number }) {
+  const isTop3 = rank <= 3;
+  const rankColors = ['#FFD60A', '#C0C0C0', '#CD7F32'];
+  const rankColor  = isTop3 ? rankColors[rank - 1] : 'rgba(255,255,255,0.25)';
+  const friendlyType = DEVICE_TYPE_LABELS[device.deviceType] ?? device.deviceType;
+  return (
+    <View style={S.eDeviceRow}>
+      <BlurView intensity={38} tint="dark" style={StyleSheet.absoluteFillObject} />
+      <View style={S.eDeviceRowTopLine} />
+      <View style={S.eDeviceRowInner}>
+        {/* Rank badge */}
+        <View style={[S.eRankBadge, { borderColor: isTop3 ? `${rankColor}60` : 'rgba(255,255,255,0.1)' }]}>
+          {isTop3
+            ? <Ionicons name="trophy" size={14} color={rankColor} />
+            : <Text style={[S.eRankNum, { color: 'rgba(255,255,255,0.4)' }]}>#{rank}</Text>
+          }
+        </View>
+        {/* Device icon */}
+        <View style={[S.eDeviceIconWrap, { backgroundColor: `${device.color}20`, borderColor: `${device.color}35` }]}>
+          <Ionicons name={TYPE_ICON[device.deviceType]} size={20} color={device.color} />
+        </View>
+        {/* Name & type */}
+        <View style={S.eDeviceInfo}>
+          <Text style={S.eDeviceName} numberOfLines={1}>{device.deviceName}</Text>
+          <Text style={S.eDeviceTypeBadge}>{friendlyType}</Text>
+        </View>
+        {/* Stats */}
+        <View style={S.eDeviceStats}>
+          <Text style={S.eDeviceKwh}>{device.kwh.toFixed(2)} kWh</Text>
+          <Text style={S.eDeviceCost}>${device.cost.toFixed(2)}</Text>
+          <Text style={S.eDevicePct}>{device.percentage.toFixed(0)}% of total</Text>
+        </View>
+      </View>
+      {/* Usage bar */}
+      <View style={S.eDeviceProgressTrack}>
+        <View style={[S.eDeviceProgressFill, { width: `${device.percentage}%` as any }]}>
+          <LinearGradient
+            colors={[device.color, `${device.color}66`]}
+            style={StyleSheet.absoluteFillObject}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+          />
+        </View>
+      </View>
+    </View>
+  );
+}
+
+// ─── Safety Device Card ──────────────────────────────────────────────────────
+function SafetyDeviceCard({ device }: { device: EnergyData }) {
+  const friendlyType = DEVICE_TYPE_LABELS[device.deviceType] ?? device.deviceType;
+  return (
+    <View style={S.eSafetyCard}>
+      <LinearGradient
+        colors={['rgba(255,55,95,0.12)', 'rgba(255,159,10,0.06)', 'transparent']}
+        style={StyleSheet.absoluteFillObject}
+        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+      />
+      <BlurView intensity={38} tint="dark" style={StyleSheet.absoluteFillObject} />
+      <View style={S.eSafetyTopLine} />
+      <View style={S.eSafetyInner}>
+        <View style={S.eSafetyLeft}>
+          <View style={S.eSafetyShieldWrap}>
+            <Ionicons name="shield-checkmark" size={18} color="#FF375F" />
+          </View>
+          <View style={[S.eDeviceIconWrap, { backgroundColor: `${device.color}20`, borderColor: `${device.color}35` }]}>
+            <Ionicons name={TYPE_ICON[device.deviceType]} size={18} color={device.color} />
+          </View>
+          <View style={S.eDeviceInfo}>
+            <Text style={S.eDeviceName} numberOfLines={1}>{device.deviceName}</Text>
+            <Text style={S.eSafetySubLabel}>{friendlyType} · Auto-off enabled</Text>
+          </View>
+        </View>
+        <View style={S.eDeviceStats}>
+          <Text style={S.eDeviceKwh}>{device.kwh.toFixed(2)} kWh</Text>
+          <Text style={S.eDeviceCost}>${device.cost.toFixed(2)}</Text>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+// ─── Auto-Off Event Card ─────────────────────────────────────────────────────
+function AutoOffEventCard({ cutoff }: { cutoff: SafetyCutoff }) {
+  const durationText = cutoff.duration >= 60
+    ? `${Math.floor(cutoff.duration / 60)}h ${cutoff.duration % 60}m`
+    : `${cutoff.duration} min`;
+  return (
+    <View style={S.eAutoOffCard}>
+      <BlurView intensity={35} tint="dark" style={StyleSheet.absoluteFillObject} />
+      <View style={S.eAutoOffContent}>
+        <View style={S.eAutoOffIconWrap}>
+          <Ionicons name="timer-outline" size={20} color="#FF9F0A" />
+        </View>
+        <View style={S.eAutoOffBody}>
+          <Text style={S.eAutoOffDevice}>{cutoff.deviceName}</Text>
+          <Text style={S.eAutoOffDesc}>Automatically turned off after {durationText} of use</Text>
+          <Text style={S.eAutoOffTime}>{formatEnergyDate(cutoff.timestamp)}</Text>
+        </View>
+        <View style={S.eAutoOffBadge}>
+          <Text style={S.eAutoOffBadgeText}>Auto-off</Text>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+// ─── Main Energy Monitor Screen ──────────────────────────────────────────────
+function EnergyMonitorScreen() {
+  const [devices, setDevices] = useState<Device[]>([]);
+  const [filter, setFilter] = useState<TimeFilter>('today');
+  const [showAllCutoffs, setShowAllCutoffs] = useState(false);
+
+  useEffect(() => {
+    getDevices().then(setDevices);
+  }, []);
+
+  const energyData    = useMemo(() => generateEnergyData(devices, filter), [devices, filter]);
+  const safetyCutoffs = useMemo(() => generateSafetyCutoffs(devices), [devices]);
+  const totalKwh  = energyData.reduce((sum, d) => sum + d.kwh, 0);
+  const totalCost = energyData.reduce((sum, d) => sum + d.cost, 0);
+  const safetyDevices = energyData.filter(d => d.deviceType === 'iron' || d.deviceType === 'outlet');
+
+  const filteredCutoffs = safetyCutoffs.filter(c => {
+    const diffDays = Math.floor((Date.now() - new Date(c.timestamp).getTime()) / 86400000);
+    return filter === 'today' ? diffDays === 0 : filter === 'week' ? diffDays < 7 : diffDays < 30;
+  });
+
+  const FILTER_OPTIONS: { key: TimeFilter; label: string; sublabel: string }[] = [
+    { key: 'today', label: 'Today',     sublabel: new Date().toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' }) },
+    { key: 'week',  label: 'This Week', sublabel: 'Last 7 days' },
+    { key: 'month', label: 'This Month', sublabel: new Date().toLocaleDateString([], { month: 'long' }) },
+  ];
+
+  return (
+    <>
+      <EnergyNavBar />
+      <ScrollView
+        style={S.scroll}
+        contentContainerStyle={S.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* ── Period Selector ─────────────────────────────────────── */}
+        <View style={S.section}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={S.ePeriodRow}
+          >
+            {FILTER_OPTIONS.map(opt => {
+              const active = filter === opt.key;
+              return (
+                <TouchableOpacity
+                  key={opt.key}
+                  style={[S.ePeriodBtn, active && S.ePeriodBtnActive]}
+                  onPress={() => setFilter(opt.key)}
+                  activeOpacity={0.75}
+                  accessibilityRole="radio"
+                  accessibilityState={{ checked: active }}
+                >
+                  <BlurView intensity={active ? 52 : 28} tint="dark" style={StyleSheet.absoluteFillObject} />
+                  {active && (
+                    <LinearGradient
+                      colors={['rgba(10,132,255,0.32)', 'rgba(10,132,255,0.14)']}
+                      style={StyleSheet.absoluteFillObject}
+                      start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+                    />
+                  )}
+                  <Text style={[S.ePeriodLabel, active && S.ePeriodLabelActive]}>{opt.label}</Text>
+                  <Text style={[S.ePeriodSub, active && { color: 'rgba(10,132,255,0.8)' }]}>{opt.sublabel}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </View>
+
+        {/* ── Hero Card ───────────────────────────────────────────── */}
+        <View style={S.section}>
+          <EnergyHeroCard totalKwh={totalKwh} totalCost={totalCost} filter={filter} />
+        </View>
+
+        {/* ── Quick Stats Row ─────────────────────────────────────── */}
+        <View style={S.section}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={S.eStatChipRow}>
+            <EnergyStatChip icon="hardware-chip-outline" label="Devices Tracked" value={energyData.length.toString()} color="#0A84FF" />
+            <EnergyStatChip icon="shield-checkmark-outline" label="Auto-Off Events" value={filteredCutoffs.length.toString()} color="#FF375F" />
+            <EnergyStatChip icon="flash-outline" label="Peak Rate" value="$0.15/kWh" color="#FFD60A" />
+            <EnergyStatChip icon="leaf-outline" label="CO₂ Saved" value={`${(totalKwh * 0.4).toFixed(1)}g`} color="#30D158" />
+          </ScrollView>
+        </View>
+
+        {/* ── Bar Chart ───────────────────────────────────────────── */}
+        <View style={S.section}>
+          <View style={S.eSectionHeader}>
+            <Text style={S.eSectionTitle}>Electricity Used by Device</Text>
+            <Text style={S.eSectionSub}>Ranked by consumption</Text>
+          </View>
+          <EnergyBarChart data={energyData} />
+        </View>
+
+        {/* ── Device Breakdown ────────────────────────────────────── */}
+        <View style={S.section}>
+          <View style={S.eSectionHeader}>
+            <Text style={S.eSectionTitle}>All Devices Ranked</Text>
+            <Text style={S.eSectionSub}>Tap to view device details</Text>
+          </View>
+          <View style={{ gap: 10 }}>
+            {energyData.map((device, index) => (
+              <DeviceUsageRow key={device.deviceId} device={device} rank={index + 1} />
+            ))}
+            {energyData.length === 0 && (
+              <View style={S.eEmptyState}>
+                <BlurView intensity={32} tint="dark" style={StyleSheet.absoluteFillObject} />
+                <Ionicons name="flash-outline" size={36} color="rgba(255,255,255,0.2)" />
+                <Text style={S.eEmptyText}>No devices are on right now</Text>
+                <Text style={S.eEmptySub}>Turn on some devices to see their energy usage here.</Text>
+              </View>
+            )}
+          </View>
+        </View>
+
+        {/* ── Safety Devices ──────────────────────────────────────── */}
+        {safetyDevices.length > 0 && (
+          <View style={S.section}>
+            <View style={S.eSectionHeader}>
+              <Text style={S.eSectionTitle}>Safety-Protected Devices</Text>
+              <Text style={S.eSectionSub}>These devices have auto-off protection</Text>
+            </View>
+            <View style={{ gap: 10 }}>
+              {safetyDevices.map(device => (
+                <SafetyDeviceCard key={device.deviceId} device={device} />
+              ))}
+            </View>
+          </View>
+        )}
+
+        {/* ── Auto-Off History ────────────────────────────────────── */}
+        {filteredCutoffs.length > 0 && (
+          <View style={S.section}>
+            <View style={S.eSectionHeader}>
+              <Text style={S.eSectionTitle}>Auto-Off History</Text>
+              <Text style={S.eSectionSub}>Devices that were automatically switched off</Text>
+            </View>
+            <View style={{ gap: 8 }}>
+              {filteredCutoffs.slice(0, showAllCutoffs ? undefined : 4).map(cutoff => (
+                <AutoOffEventCard key={cutoff.id} cutoff={cutoff} />
+              ))}
+            </View>
+            {!showAllCutoffs && filteredCutoffs.length > 4 && (
+              <TouchableOpacity style={S.eShowMoreBtn} onPress={() => setShowAllCutoffs(true)} activeOpacity={0.7}>
+                <BlurView intensity={30} tint="dark" style={StyleSheet.absoluteFillObject} />
+                <Ionicons name="chevron-down" size={16} color="#0A84FF" />
+                <Text style={S.eShowMoreText}>Show {filteredCutoffs.length - 4} more events</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+
+        {/* ── Export Button ───────────────────────────────────────── */}
+        <View style={[S.section, { marginBottom: IOS_BOTTOM + 16 }]}>
+          <TouchableOpacity style={S.eExportBtn} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel="Download energy report">
+            <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFillObject} />
+            <LinearGradient
+              colors={['rgba(10,132,255,0.28)', 'rgba(10,132,255,0.12)']}
+              style={StyleSheet.absoluteFillObject}
+              start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+            />
+            <View style={S.eExportBorder} />
+            <Ionicons name="download-outline" size={22} color="#0A84FF" style={{ marginRight: 10 }} />
+            <View>
+              <Text style={S.eExportTitle}>Download Energy Report</Text>
+              <Text style={S.eExportSub}>PDF summary of your usage</Text>
+            </View>
+            <View style={{ flex: 1 }} />
+            <Ionicons name="chevron-forward" size={18} color="rgba(10,132,255,0.7)" />
+          </TouchableOpacity>
+        </View>
+
+        <View style={{ height: IOS_BOTTOM + 110 }} />
+      </ScrollView>
+    </>
+  );
+}
+
 // ─── Animated tab panel — crossfades in when `visible` becomes true ───────────
 function TabPanel({ visible, children }: { visible: boolean; children: React.ReactNode }) {
   const opacity = useRef(new Animated.Value(visible ? 1 : 0)).current;
@@ -1495,6 +1997,11 @@ export default function HomeScreen() {
         </ScrollView>
       </TabPanel>
 
+      {/* ── ENERGY TAB ───────────────────────────────────────────────────── */}
+      <TabPanel visible={activeTab === 'energy'}>
+        <EnergyMonitorScreen />
+      </TabPanel>
+
       <TabBar active={activeTab} onChange={(id) => {
         setActiveTab(id);
       }} translateY={tabBarAnim} />
@@ -1758,4 +2265,102 @@ const S = StyleSheet.create({
   activityCameraText:     { fontSize: 11, color: 'rgba(255,255,255,0.45)', letterSpacing: 0.2 },
   activitySeparator:      { height: 1, backgroundColor: 'rgba(255,255,255,0.06)', marginHorizontal: 16 },
   sectionAction:          { fontSize: 13, fontWeight: '600', color: '#0A84FF', letterSpacing: 0.2 },
+  // ─── Energy tab – new luxury styles ─────────────────────────────────────────
+  // Section headers
+  eSectionHeader:         { marginBottom: 14 },
+  eSectionTitle:          { fontSize: 18, fontWeight: '700', color: '#ffffff', letterSpacing: -0.3, marginBottom: 3 },
+  eSectionSub:            { fontSize: 13, fontWeight: '400', color: 'rgba(255,255,255,0.45)' },
+
+  // Period selector
+  ePeriodRow:             { paddingHorizontal: 0, gap: 10 },
+  ePeriodBtn:             { width: 130, paddingVertical: 14, paddingHorizontal: 16, borderRadius: 18, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.09)' },
+  ePeriodBtnActive:       { borderColor: 'rgba(10,132,255,0.45)' },
+  ePeriodLabel:           { fontSize: 15, fontWeight: '600', color: 'rgba(255,255,255,0.55)', marginBottom: 3, zIndex: 1 },
+  ePeriodLabelActive:     { color: '#0A84FF' },
+  ePeriodSub:             { fontSize: 11, fontWeight: '400', color: 'rgba(255,255,255,0.32)', zIndex: 1 },
+
+  // Hero card
+  eHeroCard:              { borderRadius: 24, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,214,10,0.22)', minHeight: 150 },
+  eHeroBorder:            { position: 'absolute', top: 0, left: 0, right: 0, height: 1, backgroundColor: 'rgba(255,255,255,0.15)' },
+  eHeroContent:           { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', padding: 24, zIndex: 1 },
+  eHeroLeft:              { flex: 1 },
+  eHeroPeriod:            { fontSize: 13, fontWeight: '500', color: 'rgba(255,255,255,0.5)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.8 },
+  eHeroKwh:               { fontSize: 52, fontWeight: '800', color: '#ffffff', letterSpacing: -2, lineHeight: 56 },
+  eHeroUnit:              { fontSize: 14, fontWeight: '400', color: 'rgba(255,255,255,0.5)', marginTop: 4 },
+  eHeroRight:             { alignItems: 'flex-end', gap: 0 },
+  eHeroCostBox:           { alignItems: 'center', borderWidth: 1, borderColor: 'rgba(48,209,88,0.3)', borderRadius: 16, paddingHorizontal: 14, paddingVertical: 10 },
+  eHeroCostLabel:         { fontSize: 11, fontWeight: '500', color: 'rgba(255,255,255,0.45)', marginBottom: 2 },
+  eHeroCostValue:         { fontSize: 18, fontWeight: '700', color: '#30D158' },
+
+  // Quick stat chips
+  eStatChipRow:           { gap: 10, paddingVertical: 4 },
+  eStatChip:              { width: 130, height: 96, borderRadius: 18, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', padding: 14 },
+  eStatChipBorder:        { position: 'absolute', top: 0, left: 0, right: 0, height: 1, borderTopWidth: 1 },
+  eStatChipIcon:          { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
+  eStatChipValue:         { fontSize: 18, fontWeight: '700', color: '#ffffff', marginBottom: 2 },
+  eStatChipLabel:         { fontSize: 11, fontWeight: '400', color: 'rgba(255,255,255,0.45)' },
+
+  // Bar chart
+  eChartCard:             { borderRadius: 22, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', padding: 18, minHeight: 240 },
+  eChartTopLine:          { position: 'absolute', top: 0, left: 0, right: 0, height: 1, backgroundColor: 'rgba(255,255,255,0.1)' },
+  eChartYAxis:            { position: 'absolute', top: 18, left: 18, justifyContent: 'space-between', height: 160 },
+  eChartYLabel:           { fontSize: 9, fontWeight: '500', color: 'rgba(255,255,255,0.3)' },
+  eChartBarsWrap:         { flexDirection: 'row', alignItems: 'flex-end', height: 180, marginLeft: 52, gap: 8, marginBottom: 4 },
+  eChartBarCol:           { flex: 1, alignItems: 'center' },
+  eChartBarKwh:           { fontSize: 9, fontWeight: '600', color: 'rgba(255,255,255,0.6)', marginBottom: 4 },
+  eChartBarTrack:         { flex: 1, width: '100%', borderRadius: 8, overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.06)', marginBottom: 6 },
+  eChartBarFill:          { width: '100%', borderRadius: 8, overflow: 'hidden', minHeight: 8 },
+  eChartBarName:          { fontSize: 9, fontWeight: '600', color: 'rgba(255,255,255,0.6)', textAlign: 'center' },
+  eChartBarType:          { fontSize: 8, fontWeight: '400', color: 'rgba(255,255,255,0.3)', textAlign: 'center', marginTop: 1 },
+  eChartFootnote:         { fontSize: 10, fontWeight: '400', color: 'rgba(255,255,255,0.3)', textAlign: 'center', marginTop: 12 },
+  eChartEmpty:            { fontSize: 14, color: 'rgba(255,255,255,0.4)', textAlign: 'center', marginTop: 50 },
+
+  // Device usage rows
+  eDeviceRow:             { borderRadius: 18, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', padding: 14 },
+  eDeviceRowTopLine:      { position: 'absolute', top: 0, left: 0, right: 0, height: 1, backgroundColor: 'rgba(255,255,255,0.08)' },
+  eDeviceRowInner:        { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
+  eRankBadge:             { width: 34, height: 34, borderRadius: 17, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.04)' },
+  eRankNum:               { fontSize: 11, fontWeight: '700' },
+  eDeviceIconWrap:        { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
+  eDeviceInfo:            { flex: 1 },
+  eDeviceName:            { fontSize: 15, fontWeight: '600', color: '#ffffff', marginBottom: 3 },
+  eDeviceTypeBadge:       { fontSize: 11, fontWeight: '500', color: 'rgba(255,255,255,0.42)', backgroundColor: 'rgba(255,255,255,0.07)', alignSelf: 'flex-start', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 8 },
+  eDeviceStats:           { alignItems: 'flex-end' },
+  eDeviceKwh:             { fontSize: 16, fontWeight: '700', color: '#ffffff', marginBottom: 2 },
+  eDeviceCost:            { fontSize: 13, fontWeight: '600', color: '#30D158', marginBottom: 2 },
+  eDevicePct:             { fontSize: 10, fontWeight: '500', color: 'rgba(255,255,255,0.4)' },
+  eDeviceProgressTrack:   { height: 5, backgroundColor: 'rgba(255,255,255,0.07)', borderRadius: 3, overflow: 'hidden' },
+  eDeviceProgressFill:    { height: '100%', borderRadius: 3, overflow: 'hidden', minWidth: 4 },
+
+  // Safety device cards
+  eSafetyCard:            { borderRadius: 18, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,55,95,0.28)', padding: 14 },
+  eSafetyTopLine:         { position: 'absolute', top: 0, left: 0, right: 0, height: 1, backgroundColor: 'rgba(255,55,95,0.2)' },
+  eSafetyInner:           { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
+  eSafetyLeft:            { flexDirection: 'row', alignItems: 'center', flex: 1, gap: 10 },
+  eSafetyShieldWrap:      { width: 34, height: 34, borderRadius: 17, backgroundColor: 'rgba(255,55,95,0.15)', borderWidth: 1, borderColor: 'rgba(255,55,95,0.3)', alignItems: 'center', justifyContent: 'center' },
+  eSafetySubLabel:        { fontSize: 11, fontWeight: '500', color: 'rgba(255,55,95,0.85)' },
+
+  // Auto-off event cards
+  eAutoOffCard:           { borderRadius: 16, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,159,10,0.2)', padding: 12 },
+  eAutoOffContent:        { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  eAutoOffIconWrap:       { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,159,10,0.15)', borderWidth: 1, borderColor: 'rgba(255,159,10,0.3)', alignItems: 'center', justifyContent: 'center' },
+  eAutoOffBody:           { flex: 1 },
+  eAutoOffDevice:         { fontSize: 14, fontWeight: '600', color: '#ffffff', marginBottom: 2 },
+  eAutoOffDesc:           { fontSize: 12, fontWeight: '400', color: 'rgba(255,255,255,0.55)', marginBottom: 3 },
+  eAutoOffTime:           { fontSize: 11, fontWeight: '400', color: 'rgba(255,255,255,0.35)' },
+  eAutoOffBadge:          { backgroundColor: 'rgba(255,159,10,0.18)', borderWidth: 1, borderColor: 'rgba(255,159,10,0.3)', borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3 },
+  eAutoOffBadgeText:      { fontSize: 11, fontWeight: '600', color: '#FF9F0A' },
+
+  // Show more / empty state
+  eShowMoreBtn:           { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 10, height: 44, borderRadius: 22, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(10,132,255,0.2)', gap: 6 },
+  eShowMoreText:          { fontSize: 14, fontWeight: '600', color: '#0A84FF', zIndex: 1 },
+  eEmptyState:            { borderRadius: 20, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)', padding: 36, alignItems: 'center', justifyContent: 'center' },
+  eEmptyText:             { fontSize: 16, fontWeight: '600', color: 'rgba(255,255,255,0.5)', marginTop: 14, marginBottom: 6 },
+  eEmptySub:              { fontSize: 13, fontWeight: '400', color: 'rgba(255,255,255,0.3)', textAlign: 'center' },
+
+  // Export button
+  eExportBtn:             { height: 70, borderRadius: 22, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(10,132,255,0.35)', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20 },
+  eExportBorder:          { position: 'absolute', top: 0, left: 0, right: 0, height: 1, backgroundColor: 'rgba(255,255,255,0.12)' },
+  eExportTitle:           { fontSize: 15, fontWeight: '700', color: '#0A84FF', zIndex: 1 },
+  eExportSub:             { fontSize: 12, fontWeight: '400', color: 'rgba(10,132,255,0.65)', zIndex: 1, marginTop: 2 },
 });
