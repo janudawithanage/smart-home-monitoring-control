@@ -1,4 +1,5 @@
 import { Redirect } from 'expo-router';
+import React from 'react';
 
 /**
  * /security deep-link redirect — all security UI now lives inside the main
