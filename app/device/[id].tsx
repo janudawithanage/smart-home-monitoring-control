@@ -673,7 +673,7 @@ export default function DeviceDetailScreen() {
           <View style={styles.actionsCard}>
             <Text style={styles.sectionTitle}>Quick Actions</Text>
             <View style={styles.actionButtons}>
-              <ActionButton label="Schedule" icon="time-outline" accentColor={accentColor} onPress={() => {}} />
+              <ActionButton label="Schedule" icon="time-outline" accentColor={accentColor} onPress={() => router.push(`/schedule/${device.id}`)} />
               <ActionButton label="Automate" icon="git-branch-outline" accentColor={accentColor} onPress={() => {}} />
               <ActionButton label="History" icon="bar-chart-outline" accentColor={accentColor} onPress={() => {}} />
             </View>

@@ -191,7 +191,7 @@ export default function MultiSwitchDetailScreen() {
           <DetailsCard device={device} />
 
           {/* Quick Actions */}
-          <QuickActionsCard accentColor={accentColor} />
+          <QuickActionsCard accentColor={accentColor} deviceId={device.id} />
         </ScrollView>
       </SafeAreaView>
     </View>
@@ -466,12 +466,12 @@ function DetailRow({ label, value, isLast }: { label: string; value: string; isL
 
 // ─── Quick Actions Card ──────────────────────────────────────────────────────
 
-function QuickActionsCard({ accentColor }: { accentColor: string }) {
+function QuickActionsCard({ accentColor, deviceId }: { accentColor: string; deviceId: string }) {
   const actions = [
-    { icon: 'time-outline' as const, label: 'Schedule' },
-    { icon: 'git-branch-outline' as const, label: 'Automate' },
-    { icon: 'bar-chart-outline' as const, label: 'History' },
-    { icon: 'settings-outline' as const, label: 'Settings' },
+    { icon: 'time-outline' as const, label: 'Schedule', onPress: () => router.push(`/schedule/${deviceId}`) },
+    { icon: 'git-branch-outline' as const, label: 'Automate', onPress: () => {} },
+    { icon: 'bar-chart-outline' as const, label: 'History', onPress: () => {} },
+    { icon: 'settings-outline' as const, label: 'Settings', onPress: () => {} },
   ];
 
   return (
@@ -488,6 +488,7 @@ function QuickActionsCard({ accentColor }: { accentColor: string }) {
             accessible
             accessibilityRole="button"
             accessibilityLabel={action.label}
+            onPress={action.onPress}
           >
             <View style={[styles.actionIconBg, { backgroundColor: `${accentColor}18` }]}>
               <Ionicons name={action.icon} size={22} color={accentColor} />
