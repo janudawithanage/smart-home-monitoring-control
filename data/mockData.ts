@@ -204,6 +204,15 @@ export let DEVICES: Device[] = [
     roomName: 'Master Bedroom',
     lastUpdated: new Date().toISOString(),
   },
+  {
+    id: 'd20',
+    name: 'Kitchen Outlet',
+    type: 'outlet',
+    status: 'on',
+    floorId: 'f0',
+    roomName: 'Kitchen',
+    lastUpdated: new Date().toISOString(),
+  },
 ];
 
 /** Internal setter — used only by deviceService to keep the reference in sync. */

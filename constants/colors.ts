@@ -53,7 +53,7 @@ export const Colors = {
     fan: '#34d399',
     tv: '#818cf8',
     speaker: '#e879f9',
-    outlet: '#94a3b8',
+    outlet: '#fbbf24',     // amber/yellow for electrical power
     iron: '#fb923c',
     multiSwitch: '#2dd4bf',
   },

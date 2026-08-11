@@ -21,6 +21,19 @@ export interface SwitchCircuit {
   power?: number; // watts
 }
 
+export interface Schedule {
+  id: string;
+  deviceId: string;
+  type: 'time' | 'safety'; // time-based or safety timeout
+  enabled: boolean;
+  /** For time-based schedules */
+  time?: string; // HH:MM format
+  action?: 'on' | 'off';
+  days?: number[]; // 0-6, Sunday-Saturday
+  /** For safety schedules */
+  maxDurationMinutes?: number; // Auto-shutoff duration
+}
+
 export interface Device {
   id: string;
   name: string;
@@ -35,6 +48,10 @@ export interface Device {
   lastUpdated: string; // ISO date string
   /** For multi-switch devices, stores individual switch states */
   circuits?: SwitchCircuit[];
+  /** Schedules for this device */
+  schedules?: Schedule[];
+  /** Safety timeout in minutes (for appliances like irons) */
+  safetyTimeout?: number;
 }
 
 export interface Floor {

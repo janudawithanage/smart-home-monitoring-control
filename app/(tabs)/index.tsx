@@ -41,7 +41,7 @@ const FLOOR_PLAN_IMAGE = require('@/assets/images/floor_plan_preview.png');
 const TYPE_ICON: Record<DeviceType, keyof typeof Ionicons.glyphMap> = {
   light: 'bulb-outline', thermostat: 'thermometer-outline', lock: 'lock-closed-outline',
   camera: 'camera-outline', fan: 'refresh-outline', tv: 'tv-outline',
-  speaker: 'volume-high-outline', outlet: 'flash-outline',
+  speaker: 'volume-high-outline', outlet: 'power-outline',
   iron: 'water-outline', multiSwitch: 'apps-outline',
 };
 
@@ -52,7 +52,7 @@ interface DeviceCategory {
 }
 const CATEGORIES: DeviceCategory[] = [
   { id: 'lights',   label: 'Lights',         icon: 'bulb-outline',   fillIcon: 'bulb',   types: ['light'],   color: Colors.device.light  },
-  { id: 'outlets',  label: 'Outlets',        icon: 'flash-outline',  fillIcon: 'flash',  types: ['outlet'],  color: Colors.device.outlet },
+  { id: 'outlets',  label: 'Outlets',        icon: 'power-outline',  fillIcon: 'power',  types: ['outlet'],  color: Colors.device.outlet },
   { id: 'switches', label: 'Switch Panels',  icon: 'apps-outline',   fillIcon: 'apps',   types: [],          color: '#60A5FA'             },
   { id: 'safety',   label: 'Safety Devices', icon: 'flame-outline',  fillIcon: 'flame',  types: [],          color: '#F87171'             },
   { id: 'cameras',  label: 'Cameras',        icon: 'camera-outline', fillIcon: 'camera', types: ['camera'],  color: Colors.device.camera },
@@ -319,6 +319,17 @@ function RecentActivity({ devices }: { devices: Device[] }) {
     () => [...devices].sort((a, b) => new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime()).slice(0, 4),
     [devices],
   );
+  
+  const handleDevicePress = useCallback((device: Device) => {
+    if (device.type === 'multiSwitch') {
+      router.push(`/multi-switch/${device.id}`);
+    } else if (device.type === 'outlet') {
+      router.push(`/outlet/${device.id}`);
+    } else {
+      router.push(`/device/${device.id}`);
+    }
+  }, []);
+  
   if (recent.length === 0) return null;
   return (
     <View style={S.section}>
@@ -327,16 +338,18 @@ function RecentActivity({ devices }: { devices: Device[] }) {
         {recent.map((d, i) => {
           const color = (Colors.device as Record<string, string>)[d.type] ?? Colors.accent.blue;
           return (
-            <CardRow key={d.id} last={i === recent.length - 1}>
-              <View style={[S.activityIconRing, { backgroundColor: `${color}18`, borderColor: `${color}28` }]}>
-                <Ionicons name={TYPE_ICON[d.type]} size={17} color={color} />
-              </View>
-              <View style={S.activityBody}>
-                <Text style={S.activityText} numberOfLines={1}>{buildActivityText(d)}</Text>
-                <Text style={S.activitySub}>{d.roomName}</Text>
-              </View>
-              <Text style={S.activityTime}>{formatTime(d.lastUpdated)}</Text>
-            </CardRow>
+            <TouchableOpacity key={d.id} onPress={() => handleDevicePress(d)} activeOpacity={0.7}>
+              <CardRow last={i === recent.length - 1}>
+                <View style={[S.activityIconRing, { backgroundColor: `${color}18`, borderColor: `${color}28` }]}>
+                  <Ionicons name={TYPE_ICON[d.type]} size={17} color={color} />
+                </View>
+                <View style={S.activityBody}>
+                  <Text style={S.activityText} numberOfLines={1}>{buildActivityText(d)}</Text>
+                  <Text style={S.activitySub}>{d.roomName}</Text>
+                </View>
+                <Text style={S.activityTime}>{formatTime(d.lastUpdated)}</Text>
+              </CardRow>
+            </TouchableOpacity>
           );
         })}
       </GlassCard>
@@ -346,6 +359,17 @@ function RecentActivity({ devices }: { devices: Device[] }) {
 
 function SafetyAlerts({ devices }: { devices: Device[] }) {
   const issues = useMemo(() => devices.filter(d => d.status === 'error' || d.status === 'offline'), [devices]);
+  
+  const handleDevicePress = useCallback((device: Device) => {
+    if (device.type === 'multiSwitch') {
+      router.push(`/multi-switch/${device.id}`);
+    } else if (device.type === 'outlet') {
+      router.push(`/outlet/${device.id}`);
+    } else {
+      router.push(`/device/${device.id}`);
+    }
+  }, []);
+  
   if (issues.length === 0) return null;
   return (
     <View style={S.section}>
@@ -361,16 +385,18 @@ function SafetyAlerts({ devices }: { devices: Device[] }) {
           const color   = isError ? '#FF375F' : '#FF9F0A';
           const icon    = (isError ? 'alert-circle-outline' : 'cloud-offline-outline') as keyof typeof Ionicons.glyphMap;
           return (
-            <CardRow key={d.id} last={i === issues.length - 1}>
-              <View style={[S.alertIconRing, { backgroundColor: `${color}18`, borderColor: `${color}28` }]}>
-                <Ionicons name={icon} size={17} color={color} />
-              </View>
-              <View style={S.alertBody}>
-                <Text style={S.alertTitle}>{isError ? `${d.name} reported an error` : `${d.name} is offline`}</Text>
-                <Text style={S.alertSub}>{d.roomName}</Text>
-              </View>
-              <Text style={S.alertTime}>{formatTime(d.lastUpdated)}</Text>
-            </CardRow>
+            <TouchableOpacity key={d.id} onPress={() => handleDevicePress(d)} activeOpacity={0.7}>
+              <CardRow last={i === issues.length - 1}>
+                <View style={[S.alertIconRing, { backgroundColor: `${color}18`, borderColor: `${color}28` }]}>
+                  <Ionicons name={icon} size={17} color={color} />
+                </View>
+                <View style={S.alertBody}>
+                  <Text style={S.alertTitle}>{isError ? `${d.name} reported an error` : `${d.name} is offline`}</Text>
+                  <Text style={S.alertSub}>{d.roomName}</Text>
+                </View>
+                <Text style={S.alertTime}>{formatTime(d.lastUpdated)}</Text>
+              </CardRow>
+            </TouchableOpacity>
           );
         })}
       </GlassCard>
