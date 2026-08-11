@@ -3,7 +3,6 @@ import { Floor } from '@/types/device';
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import {
-    Dimensions,
     StyleSheet,
     Text,
     TouchableOpacity,
@@ -19,8 +18,6 @@ const FLOOR_ICONS: (keyof typeof Ionicons.glyphMap)[] = [
   'bed-outline',
   'telescope-outline',
 ];
-
-const { width } = Dimensions.get('window');
 
 export default function FloorCard({ floor }: Props) {
   const activeRatio =

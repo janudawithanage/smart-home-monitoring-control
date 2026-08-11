@@ -4,11 +4,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
 import {
-    Alert, Dimensions, Platform, ScrollView, StatusBar,
-    StyleSheet, Text, TouchableOpacity, View
+  Alert, Platform, ScrollView, StatusBar,
+  StyleSheet, Text, TouchableOpacity, View
 } from 'react-native';
 
-const { width } = Dimensions.get('window');
 const IOS_TOP = Platform.OS === 'ios' ? 54 : 36;
 const IOS_BOTTOM = Platform.OS === 'ios' ? 34 : 16;
 const H_PAD = 20;

@@ -109,14 +109,6 @@ function GlassCard({ children, bloom, style }: { children: React.ReactNode; bloo
     </View>
   );
 }
-function CardRow({ children, last = false }: { children: React.ReactNode; last?: boolean }) {
-  return (
-    <>
-      <View style={S.cardRow}>{children}</View>
-      {!last && <View style={S.separator} />}
-    </>
-  );
-}
 
 // ─── Shared: TabBar ───────────────────────────────────────────────────────────
 const TAB_BAR_HEIGHT = 120; // approximate height including bottom inset

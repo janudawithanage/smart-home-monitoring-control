@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import SwitchButton from '@/components/SwitchButton';
 import { Colors } from '@/constants/colors';
 import { getDeviceById } from '@/services/deviceService';
-import { addSchedule, deleteSchedule, getSchedulesForDevice, toggleSchedule, updateSchedule } from '@/services/scheduleService';
+import { deleteSchedule, getSchedulesForDevice, toggleSchedule } from '@/services/scheduleService';
 import { Device, Schedule } from '@/types/device';
 
 const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];

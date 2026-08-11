@@ -604,7 +604,7 @@ function FloorPlanCanvas({
           <View style={S.placingOverlay} pointerEvents="none">
             <View style={S.placingHint}>
               <Ionicons name="add-circle" size={32} color="#0A84FF" />
-              <Text style={S.placingHintText}>Tap to place "{placingDevice.name}"</Text>
+              <Text style={S.placingHintText}>Tap to place &quot;{placingDevice.name}&quot;</Text>
             </View>
           </View>
         )}
@@ -812,7 +812,7 @@ export default function FloorPlanScreen() {
           <View style={S.placingBannerContent}>
             <Ionicons name="location-outline" size={18} color="#0A84FF" />
             <Text style={S.placingBannerText} numberOfLines={1}>
-              Tap the floor plan to place "{placingDevice.name}"
+              Tap the floor plan to place &quot;{placingDevice.name}&quot;
             </Text>
             <TouchableOpacity onPress={() => setPlacingDevice(null)}
               accessibilityLabel="Cancel placement" accessibilityRole="button">

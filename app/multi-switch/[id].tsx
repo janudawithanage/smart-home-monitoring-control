@@ -29,11 +29,6 @@ interface SwitchCircuit {
   power?: number; // watts
 }
 
-interface MultiSwitchUnit {
-  device: Device;
-  circuits: SwitchCircuit[];
-}
-
 // ─── Mock data for circuits ──────────────────────────────────────────────────
 // In a real app, this would come from the backend along with the device data
 function getMockCircuits(switchCount: number): SwitchCircuit[] {
