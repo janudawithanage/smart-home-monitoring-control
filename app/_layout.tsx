@@ -48,6 +48,7 @@ export default function RootLayout() {
         <Stack.Screen name="multi-switch/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="floor-plan/index" options={{ headerShown: false, animation: 'slide_from_bottom' }} />
         <Stack.Screen name="floors/index" options={{ headerShown: false, animation: 'fade' }} />
+        <Stack.Screen name="security/index" options={{ headerShown: false, animation: 'slide_from_right' }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
       </Stack>
       <StatusBar style="light" />

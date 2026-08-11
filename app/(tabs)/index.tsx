@@ -334,25 +334,30 @@ function RecentActivity({ devices }: { devices: Device[] }) {
   return (
     <View style={S.section}>
       <View style={S.sectionHeader}><Text style={S.sectionTitle}>Recent Device Activity</Text></View>
-      <GlassCard bloom="rgba(80,140,255,0.06)">
+      <View style={S.activityCard}>
+        <BlurView intensity={38} tint="dark" style={StyleSheet.absoluteFillObject} />
+        <View style={S.activityCardInnerBorder} />
         {recent.map((d, i) => {
           const color = (Colors.device as Record<string, string>)[d.type] ?? Colors.accent.blue;
           return (
-            <TouchableOpacity key={d.id} onPress={() => handleDevicePress(d)} activeOpacity={0.7}>
-              <CardRow last={i === recent.length - 1}>
-                <View style={[S.activityIconRing, { backgroundColor: `${color}18`, borderColor: `${color}28` }]}>
-                  <Ionicons name={TYPE_ICON[d.type]} size={17} color={color} />
+            <View key={d.id}>
+              <TouchableOpacity onPress={() => handleDevicePress(d)} activeOpacity={0.7} style={S.activityTouchable}>
+                <View style={S.activityRow}>
+                  <View style={[S.activityIconRing, { backgroundColor: `${color}18`, borderColor: `${color}28` }]}>
+                    <Ionicons name={TYPE_ICON[d.type]} size={17} color={color} />
+                  </View>
+                  <View style={S.activityBody}>
+                    <Text style={S.activityText} numberOfLines={1}>{buildActivityText(d)}</Text>
+                    <Text style={S.activitySub}>{d.roomName}</Text>
+                  </View>
+                  <Text style={S.activityTime}>{formatTime(d.lastUpdated)}</Text>
                 </View>
-                <View style={S.activityBody}>
-                  <Text style={S.activityText} numberOfLines={1}>{buildActivityText(d)}</Text>
-                  <Text style={S.activitySub}>{d.roomName}</Text>
-                </View>
-                <Text style={S.activityTime}>{formatTime(d.lastUpdated)}</Text>
-              </CardRow>
-            </TouchableOpacity>
+              </TouchableOpacity>
+              {i < recent.length - 1 && <View style={S.activitySeparator} />}
+            </View>
           );
         })}
-      </GlassCard>
+      </View>
     </View>
   );
 }
@@ -379,27 +384,32 @@ function SafetyAlerts({ devices }: { devices: Device[] }) {
           <View style={S.alertCountBadge}><Text style={S.alertCountText}>{issues.length}</Text></View>
         </View>
       </View>
-      <GlassCard bloom="rgba(255,55,55,0.06)">
+      <View style={S.activityCard}>
+        <BlurView intensity={38} tint="dark" style={StyleSheet.absoluteFillObject} />
+        <View style={S.activityCardInnerBorder} />
         {issues.map((d, i) => {
           const isError = d.status === 'error';
           const color   = isError ? '#FF375F' : '#FF9F0A';
           const icon    = (isError ? 'alert-circle-outline' : 'cloud-offline-outline') as keyof typeof Ionicons.glyphMap;
           return (
-            <TouchableOpacity key={d.id} onPress={() => handleDevicePress(d)} activeOpacity={0.7}>
-              <CardRow last={i === issues.length - 1}>
-                <View style={[S.alertIconRing, { backgroundColor: `${color}18`, borderColor: `${color}28` }]}>
-                  <Ionicons name={icon} size={17} color={color} />
+            <View key={d.id}>
+              <TouchableOpacity onPress={() => handleDevicePress(d)} activeOpacity={0.7} style={S.activityTouchable}>
+                <View style={S.activityRow}>
+                  <View style={[S.alertIconRing, { backgroundColor: `${color}18`, borderColor: `${color}28` }]}>
+                    <Ionicons name={icon} size={17} color={color} />
+                  </View>
+                  <View style={S.alertBody}>
+                    <Text style={S.alertTitle}>{isError ? `${d.name} reported an error` : `${d.name} is offline`}</Text>
+                    <Text style={S.alertSub}>{d.roomName}</Text>
+                  </View>
+                  <Text style={S.activityTime}>{formatTime(d.lastUpdated)}</Text>
                 </View>
-                <View style={S.alertBody}>
-                  <Text style={S.alertTitle}>{isError ? `${d.name} reported an error` : `${d.name} is offline`}</Text>
-                  <Text style={S.alertSub}>{d.roomName}</Text>
-                </View>
-                <Text style={S.alertTime}>{formatTime(d.lastUpdated)}</Text>
-              </CardRow>
-            </TouchableOpacity>
+              </TouchableOpacity>
+              {i < issues.length - 1 && <View style={S.activitySeparator} />}
+            </View>
           );
         })}
-      </GlassCard>
+      </View>
     </View>
   );
 }
@@ -411,29 +421,39 @@ function DeviceStatusOverview({ devices }: { devices: Device[] }) {
   return (
     <View style={S.section}>
       <View style={S.sectionHeader}><Text style={S.sectionTitle}>Device Status Overview</Text></View>
-      <GlassCard bloom="rgba(80,255,150,0.05)">
-        <CardRow>
-          <View style={[S.rowIconRing, { backgroundColor: 'rgba(48,209,88,0.15)', borderColor: 'rgba(48,209,88,0.25)' }]}>
-            <Ionicons name="checkmark-circle-outline" size={18} color="#30D158" />
+      <View style={S.activityCard}>
+        <BlurView intensity={38} tint="dark" style={StyleSheet.absoluteFillObject} />
+        <View style={S.activityCardInnerBorder} />
+        <View style={S.activityTouchable}>
+          <View style={S.activityRow}>
+            <View style={[S.rowIconRing, { backgroundColor: 'rgba(48,209,88,0.15)', borderColor: 'rgba(48,209,88,0.25)' }]}>
+              <Ionicons name="checkmark-circle-outline" size={18} color="#30D158" />
+            </View>
+            <Text style={S.rowLabel}>Online</Text>
+            <Text style={[S.rowValue, { color: '#30D158' }]}>{online}</Text>
           </View>
-          <Text style={S.rowLabel}>Online</Text>
-          <Text style={[S.rowValue, { color: '#30D158' }]}>{online}</Text>
-        </CardRow>
-        <CardRow>
-          <View style={[S.rowIconRing, { backgroundColor: 'rgba(255,159,10,0.15)', borderColor: 'rgba(255,159,10,0.25)' }]}>
-            <Ionicons name="cloud-offline-outline" size={18} color="#FF9F0A" />
+        </View>
+        <View style={S.activitySeparator} />
+        <View style={S.activityTouchable}>
+          <View style={S.activityRow}>
+            <View style={[S.rowIconRing, { backgroundColor: 'rgba(255,159,10,0.15)', borderColor: 'rgba(255,159,10,0.25)' }]}>
+              <Ionicons name="cloud-offline-outline" size={18} color="#FF9F0A" />
+            </View>
+            <Text style={S.rowLabel}>Offline</Text>
+            <Text style={[S.rowValue, { color: '#FF9F0A' }]}>{offline}</Text>
           </View>
-          <Text style={S.rowLabel}>Offline</Text>
-          <Text style={[S.rowValue, { color: '#FF9F0A' }]}>{offline}</Text>
-        </CardRow>
-        <CardRow last>
-          <View style={[S.rowIconRing, { backgroundColor: 'rgba(255,55,95,0.15)', borderColor: 'rgba(255,55,95,0.25)' }]}>
-            <Ionicons name="alert-circle-outline" size={18} color="#FF375F" />
+        </View>
+        <View style={S.activitySeparator} />
+        <View style={S.activityTouchable}>
+          <View style={S.activityRow}>
+            <View style={[S.rowIconRing, { backgroundColor: 'rgba(255,55,95,0.15)', borderColor: 'rgba(255,55,95,0.25)' }]}>
+              <Ionicons name="alert-circle-outline" size={18} color="#FF375F" />
+            </View>
+            <Text style={S.rowLabel}>Error</Text>
+            <Text style={[S.rowValue, { color: '#FF375F' }]}>{errorCount}</Text>
           </View>
-          <Text style={S.rowLabel}>Error</Text>
-          <Text style={[S.rowValue, { color: '#FF375F' }]}>{errorCount}</Text>
-        </CardRow>
-      </GlassCard>
+        </View>
+      </View>
     </View>
   );
 }
@@ -879,6 +899,334 @@ function AddDeviceModal({ visible, floors, onClose, onSave }: {
   );
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// SECURITY TAB COMPONENTS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+type CameraStatus = 'online' | 'recording' | 'offline';
+
+interface Camera {
+  id: string;
+  name: string;
+  location: string;
+  status: CameraStatus;
+  isRecording: boolean;
+  resolution: string;
+  lastUpdated: string;
+  previewIndex: 0 | 1 | 2 | 3;
+}
+
+const CAMERA_PREVIEWS = [
+  require('@/assets/images/cam_01.jpg'),
+  require('@/assets/images/cam_02.jpg'),
+  require('@/assets/images/cam_03.jpg'),
+  require('@/assets/images/cam_04.jpg'),
+] as const;
+
+const MOCK_CAMERAS: Camera[] = [
+  {
+    id: 'cam-01',
+    name: 'Front Porch',
+    location: 'Entrance · Sector A',
+    status: 'recording',
+    isRecording: true,
+    resolution: '4K Ultra HD',
+    lastUpdated: new Date(Date.now() - 1000 * 15).toISOString(),
+    previewIndex: 0,
+  },
+  {
+    id: 'cam-02',
+    name: 'Driveway',
+    location: 'Exterior · Sector B',
+    status: 'online',
+    isRecording: false,
+    resolution: '1080p HD',
+    lastUpdated: new Date(Date.now() - 1000 * 45).toISOString(),
+    previewIndex: 1,
+  },
+  {
+    id: 'cam-03',
+    name: 'Backyard Pool',
+    location: 'Rear Garden',
+    status: 'recording',
+    isRecording: true,
+    resolution: '1080p HD',
+    lastUpdated: new Date(Date.now() - 1000 * 30).toISOString(),
+    previewIndex: 2,
+  },
+  {
+    id: 'cam-04',
+    name: 'Living Room',
+    location: 'Interior · Ground Floor',
+    status: 'offline',
+    isRecording: false,
+    resolution: '4K Ultra HD',
+    lastUpdated: new Date(Date.now() - 1000 * 120).toISOString(),
+    previewIndex: 3,
+  },
+];
+
+function formatLastUpdated(iso: string): string {
+  const secs = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+  if (secs < 60) return `${secs}s ago`;
+  const mins = Math.floor(secs / 60);
+  if (mins < 60) return `${mins}m ago`;
+  return `${Math.floor(mins / 60)}h ago`;
+}
+
+function getStatusColor(status: CameraStatus): string {
+  switch (status) {
+    case 'online': return '#4ade80';
+    case 'recording': return '#f87171';
+    case 'offline': return '#f59e0b';
+  }
+}
+
+function getStatusLabel(status: CameraStatus): string {
+  switch (status) {
+    case 'online': return 'ONLINE';
+    case 'recording': return 'REC';
+    case 'offline': return 'OFFLINE';
+  }
+}
+
+function SecurityNavBar() {
+  return (
+    <View style={S.navOuter}>
+      <View style={S.navBloom} />
+      <BlurView intensity={55} tint="dark" style={S.navPill}>
+        <View style={S.navSpecular} />
+        <View style={S.navContent}>
+          <View style={S.navLeft}>
+            <View style={S.navLogoRing}>
+              <Image source={require('@/assets/images/logo.png')} style={S.navLogoImg} resizeMode="contain" />
+            </View>
+            <Text style={S.navBrand}>Security</Text>
+          </View>
+          <TouchableOpacity style={S.navIconBtn} accessibilityLabel="Security settings">
+            <BlurView intensity={40} tint="dark" style={S.navIconGlass}>
+              <Ionicons name="shield-outline" size={20} color={Colors.device.camera} />
+            </BlurView>
+          </TouchableOpacity>
+        </View>
+      </BlurView>
+    </View>
+  );
+}
+
+function CameraCard({ camera }: { camera: Camera }) {
+  const [lastUpdated, setLastUpdated] = useState(camera.lastUpdated);
+  const [refreshing, setRefreshing] = useState(false);
+  const refreshAnim = useRef(new Animated.Value(0)).current;
+  const recPulse = useRef(new Animated.Value(1)).current;
+  const livePulse = useRef(new Animated.Value(1)).current;
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  // Recording pulse animation
+  useEffect(() => {
+    if (!camera.isRecording) return;
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(recPulse, { toValue: 0.3, duration: 500, useNativeDriver: true }),
+        Animated.timing(recPulse, { toValue: 1, duration: 500, useNativeDriver: true }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [camera.isRecording]);
+
+  // LIVE pulse animation for online cameras
+  useEffect(() => {
+    if (camera.status === 'offline') return;
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(livePulse, { toValue: 0.5, duration: 1000, useNativeDriver: true }),
+        Animated.timing(livePulse, { toValue: 1, duration: 1000, useNativeDriver: true }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [camera.status]);
+
+  const handleRefresh = useCallback(() => {
+    if (refreshing) return;
+    setRefreshing(true);
+    Animated.timing(refreshAnim, { toValue: 1, duration: 700, useNativeDriver: true }).start(() => {
+      refreshAnim.setValue(0);
+      setLastUpdated(new Date().toISOString());
+      setRefreshing(false);
+    });
+  }, [refreshing]);
+
+  const pressIn = () => Animated.spring(scaleAnim, { toValue: 0.97, useNativeDriver: true }).start();
+  const pressOut = () => Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true }).start();
+
+  const statusColor = getStatusColor(camera.status);
+  const isOffline = camera.status === 'offline';
+
+  const spinInterpolation = refreshAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg'],
+  });
+
+  return (
+    <Animated.View style={[S.cameraCardOuter, { transform: [{ scale: scaleAnim }] }]}>
+      <Pressable onPressIn={pressIn} onPressOut={pressOut} style={S.cameraCardPress}>
+        <View style={S.cameraPreviewWrap}>
+          {isOffline ? (
+            <View style={S.offlinePlaceholder}>
+              <LinearGradient colors={['#0d1a30', '#0a1628']} style={StyleSheet.absoluteFillObject} />
+              <Ionicons name="videocam-off-outline" size={40} color="rgba(255,255,255,0.2)" />
+              <Text style={S.offlineText}>Stream Unavailable</Text>
+            </View>
+          ) : (
+            <Image source={CAMERA_PREVIEWS[camera.previewIndex]} style={S.cameraPreviewImg} resizeMode="cover" />
+          )}
+
+          {camera.isRecording && (
+            <View style={S.recBadge}>
+              <Animated.View style={[S.recDot, { opacity: recPulse }]} />
+              <Text style={S.recText}>REC</Text>
+            </View>
+          )}
+
+          {!isOffline && (
+            <Animated.View style={[S.liveBadge, { opacity: livePulse }]}>
+              <View style={S.liveDot} />
+              <Text style={S.liveText}>LIVE</Text>
+            </Animated.View>
+          )}
+
+          <LinearGradient colors={['transparent', 'rgba(5,10,24,0.92)']} style={S.cameraGradient} />
+
+          <View style={S.cameraInfo}>
+            <Text style={S.cameraName}>{camera.name}</Text>
+            <Text style={S.cameraLocation}>{camera.location}</Text>
+          </View>
+
+          <Text style={S.lastUpdatedText}>{formatLastUpdated(lastUpdated)}</Text>
+        </View>
+
+        <View style={S.cameraFooter}>
+          <View style={S.cameraFooterLeft}>
+            <View style={[S.statusBadge, { borderColor: `${statusColor}55`, backgroundColor: `${statusColor}18` }]}>
+              <View style={[S.statusDot, { backgroundColor: statusColor }]} />
+              <Text style={[S.statusText, { color: statusColor }]}>{getStatusLabel(camera.status)}</Text>
+            </View>
+            <View style={S.resolutionBadge}>
+              <Ionicons name="videocam-outline" size={11} color="rgba(255,255,255,0.5)" />
+              <Text style={S.resolutionText}>{camera.resolution}</Text>
+            </View>
+          </View>
+
+          <TouchableOpacity style={S.refreshBtn} onPress={handleRefresh} accessibilityLabel={`Refresh ${camera.name}`}>
+            <Animated.View style={{ transform: [{ rotate: spinInterpolation }] }}>
+              <Ionicons name="refresh-outline" size={18} color={Colors.device.camera} />
+            </Animated.View>
+          </TouchableOpacity>
+        </View>
+      </Pressable>
+    </Animated.View>
+  );
+}
+
+// Activity Log Data
+interface ActivityEvent {
+  id: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  iconBg: string;
+  title: string;
+  detail: string;
+  time: string;
+  cameraName: string;
+}
+
+const ACTIVITY_EVENTS: ActivityEvent[] = [
+  {
+    id: 'evt-1',
+    icon: 'walk-outline',
+    iconBg: '#60a5fa',
+    title: 'Motion Detected',
+    detail: 'Person detected at entrance area',
+    time: formatTime(new Date(Date.now() - 1000 * 60 * 5).toISOString()),
+    cameraName: 'Front Porch',
+  },
+  {
+    id: 'evt-2',
+    icon: 'car-outline',
+    iconBg: '#4ade80',
+    title: 'Vehicle Detected',
+    detail: 'Known vehicle entering driveway',
+    time: formatTime(new Date(Date.now() - 1000 * 60 * 15).toISOString()),
+    cameraName: 'Driveway',
+  },
+  {
+    id: 'evt-3',
+    icon: 'alert-circle-outline',
+    iconBg: '#f87171',
+    title: 'Alert Triggered',
+    detail: 'Unusual movement near pool area',
+    time: formatTime(new Date(Date.now() - 1000 * 60 * 45).toISOString()),
+    cameraName: 'Backyard Pool',
+  },
+  {
+    id: 'evt-4',
+    icon: 'videocam-off-outline',
+    iconBg: '#f59e0b',
+    title: 'Camera Offline',
+    detail: 'Living Room camera disconnected',
+    time: formatTime(new Date(Date.now() - 1000 * 60 * 90).toISOString()),
+    cameraName: 'Living Room',
+  },
+  {
+    id: 'evt-5',
+    icon: 'shield-checkmark-outline',
+    iconBg: '#4ade80',
+    title: 'System Armed',
+    detail: 'Security system activated',
+    time: formatTime(new Date(Date.now() - 1000 * 60 * 120).toISOString()),
+    cameraName: 'System',
+  },
+];
+
+function SecurityActivityLog() {
+  return (
+    <View style={S.section}>
+      <View style={S.sectionHeader}>
+        <Text style={S.sectionTitle}>Activity Log</Text>
+        <TouchableOpacity accessibilityLabel="View all activity">
+          <Text style={S.sectionAction}>View All</Text>
+        </TouchableOpacity>
+      </View>
+      <View style={S.activityCard}>
+        <BlurView intensity={38} tint="dark" style={StyleSheet.absoluteFillObject} />
+        <View style={S.activityCardInnerBorder} />
+        {ACTIVITY_EVENTS.map((event, index) => (
+          <View key={event.id}>
+            <TouchableOpacity activeOpacity={0.7} style={S.activityTouchable}>
+              <View style={S.activityRow}>
+                <View style={[S.activityIconRing, { backgroundColor: `${event.iconBg}22`, borderColor: `${event.iconBg}44` }]}>
+                  <Ionicons name={event.icon} size={18} color={event.iconBg} />
+                </View>
+                <View style={S.activityBody}>
+                  <Text style={S.activityTitle} numberOfLines={1}>{event.title}</Text>
+                  <Text style={S.activityDetail} numberOfLines={1}>{event.detail}</Text>
+                  <View style={S.activityCameraRow}>
+                    <Ionicons name="videocam-outline" size={11} color="rgba(255,255,255,0.4)" />
+                    <Text style={S.activityCameraText}>{event.cameraName}</Text>
+                  </View>
+                </View>
+                <Text style={S.activityTime}>{event.time}</Text>
+              </View>
+            </TouchableOpacity>
+            {index < ACTIVITY_EVENTS.length - 1 && <View style={S.activitySeparator} />}
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
+
 // ─── Animated tab panel — crossfades in when `visible` becomes true ───────────
 function TabPanel({ visible, children }: { visible: boolean; children: React.ReactNode }) {
   const opacity = useRef(new Animated.Value(visible ? 1 : 0)).current;
@@ -1111,7 +1459,45 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </TabPanel>
 
-      <TabBar active={activeTab} onChange={setActiveTab} translateY={tabBarAnim} />
+      {/* ── SECURITY TAB ─────────────────────────────────────────────────── */}
+      <TabPanel visible={activeTab === 'security'}>
+        <SecurityNavBar />
+        <ScrollView style={S.scroll} contentContainerStyle={S.scrollContent}
+          showsVerticalScrollIndicator={false}>
+          <View style={S.heroSection}>
+            <Text style={S.heroSub}>Security</Text>
+            <Text style={S.heroTitle}>Security Center</Text>
+            <Text style={S.heroDesc}>Monitor live camera feeds and security status</Text>
+            <View style={S.ribbonRow}>
+              <RibbonCard icon="shield-checkmark" value={MOCK_CAMERAS.filter(c => c.status !== 'offline').length} label="Active" color="#30D158" />
+              <RibbonCard icon="videocam" value={MOCK_CAMERAS.filter(c => c.isRecording).length} label="Recording" color="#f87171" />
+              <RibbonCard icon="warning-outline" value={MOCK_CAMERAS.filter(c => c.status === 'offline').length} label="Offline" color="#f59e0b" />
+            </View>
+          </View>
+
+          <View style={S.section}>
+            <View style={S.sectionHeader}>
+              <Text style={S.sectionTitle}>Camera Feeds</Text>
+              <View style={S.cameraCountBadge}>
+                <Text style={S.cameraCountText}>{MOCK_CAMERAS.length}</Text>
+              </View>
+            </View>
+            <View style={S.cameraGrid}>
+              {MOCK_CAMERAS.map((camera) => (
+                <CameraCard key={camera.id} camera={camera} />
+              ))}
+            </View>
+          </View>
+
+          <SecurityActivityLog />
+
+          <View style={{ height: IOS_BOTTOM + 130 }} />
+        </ScrollView>
+      </TabPanel>
+
+      <TabBar active={activeTab} onChange={(id) => {
+        setActiveTab(id);
+      }} translateY={tabBarAnim} />
 
       <FloorModal visible={modalVisible} editingFloor={editingFloor}
         onClose={() => setModalVisible(false)} onSave={handleFloorSave} />
@@ -1207,11 +1593,14 @@ const S = StyleSheet.create({
   categoryLabel:       { fontSize: 16, fontWeight: '700', letterSpacing: -0.3, lineHeight: 20 },
   categorySub:         { fontSize: 12, fontWeight: '500', letterSpacing: 0.1, lineHeight: 16 },
   // Activity
-  activityIconRing: { width: 40, height: 40, borderRadius: 13, justifyContent: 'center', alignItems: 'center', marginRight: 14, borderWidth: 1 },
-  activityBody:     { flex: 1 },
+  activityRow:      { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, gap: 12 },
+  activityIconRing: { width: 40, height: 40, borderRadius: 13, justifyContent: 'center', alignItems: 'center', borderWidth: 1, flexShrink: 0 },
+  activityBody:     { flex: 1, gap: 2 },
   activityText:     { fontSize: 15, fontWeight: '600', color: '#fff', letterSpacing: -0.2 },
+  activityTitle:    { fontSize: 14, fontWeight: '700', color: Colors.text.primary, letterSpacing: -0.2 },
+  activityDetail:   { fontSize: 12, color: Colors.text.muted, lineHeight: 16 },
   activitySub:      { fontSize: 12, color: 'rgba(255,255,255,0.42)', marginTop: 2 },
-  activityTime:     { fontSize: 13, color: 'rgba(255,255,255,0.32)' },
+  activityTime:     { fontSize: 13, color: 'rgba(255,255,255,0.32)', fontWeight: '600', fontVariant: ['tabular-nums'], flexShrink: 0 },
   // Alerts
   alertIconRing: { width: 40, height: 40, borderRadius: 13, justifyContent: 'center', alignItems: 'center', marginRight: 14, borderWidth: 1 },
   alertBody:     { flex: 1 },
@@ -1331,4 +1720,42 @@ const S = StyleSheet.create({
   tabActiveSheen:{ position: 'absolute', top: 0, left: '20%', right: '20%', height: 1, backgroundColor: 'rgba(255,255,255,0.45)', borderRadius: 1 },
   tabIconWrap:   { width: 44, height: 36, justifyContent: 'center', alignItems: 'center' },
   tabLabel:      { fontSize: 10, fontWeight: '500', letterSpacing: 0.1 },
+  // Security tab - Camera cards
+  cameraGrid:         { gap: 14 },
+  cameraCardOuter:    { borderRadius: 20, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(61,107,234,0.22)', backgroundColor: Colors.bg.card },
+  cameraCardPress:    { overflow: 'hidden' },
+  cameraPreviewWrap:  { width: '100%', height: 200, backgroundColor: Colors.bg.secondary, position: 'relative' },
+  cameraPreviewImg:   { width: '100%', height: '100%' },
+  offlinePlaceholder: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10 },
+  offlineText:        { fontSize: 13, color: 'rgba(255,255,255,0.25)', letterSpacing: 0.5 },
+  cameraGradient:     { position: 'absolute', bottom: 0, left: 0, right: 0, height: 90 },
+  recBadge:           { position: 'absolute', top: 10, left: 10, flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(0,0,0,0.55)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(248,113,113,0.4)' },
+  recDot:             { width: 7, height: 7, borderRadius: 3.5, backgroundColor: '#f87171' },
+  recText:            { fontSize: 11, fontWeight: '700', color: '#f87171', letterSpacing: 1 },
+  cameraInfo:         { position: 'absolute', bottom: 10, left: 12 },
+  cameraName:         { fontSize: 18, fontWeight: '800', color: '#ffffff', letterSpacing: -0.3, textShadowColor: 'rgba(0,0,0,0.8)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 },
+  cameraLocation:     { fontSize: 11, color: 'rgba(255,255,255,0.65)', letterSpacing: 0.5, marginTop: 2 },
+  lastUpdatedText:    { position: 'absolute', bottom: 12, right: 12, fontSize: 10, color: 'rgba(255,255,255,0.5)', letterSpacing: 0.3 },
+  cameraFooter:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingVertical: 12 },
+  cameraFooterLeft:   { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },
+  statusBadge:        { flexDirection: 'row', alignItems: 'center', gap: 5, borderRadius: 8, borderWidth: 1, paddingHorizontal: 8, paddingVertical: 4 },
+  statusDot:          { width: 7, height: 7, borderRadius: 3.5 },
+  statusText:         { fontSize: 10, fontWeight: '700', letterSpacing: 0.8 },
+  resolutionBadge:    { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  resolutionText:     { fontSize: 11, color: 'rgba(255,255,255,0.5)' },
+  refreshBtn:         { width: 36, height: 36, borderRadius: 10, backgroundColor: `${Colors.device.camera}18`, borderWidth: 1, borderColor: `${Colors.device.camera}30`, alignItems: 'center', justifyContent: 'center' },
+  cameraCountBadge:   { backgroundColor: 'rgba(10,132,255,0.15)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(10,132,255,0.3)' },
+  cameraCountText:    { fontSize: 12, fontWeight: '700', color: '#0A84FF', letterSpacing: 0.5 },
+  // LIVE badge animation
+  liveBadge:          { position: 'absolute', top: 10, right: 10, flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(0,0,0,0.65)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)' },
+  liveDot:            { width: 8, height: 8, borderRadius: 4, backgroundColor: '#ff3b30' },
+  liveText:           { fontSize: 11, fontWeight: '800', color: '#ffffff', letterSpacing: 1.2 },
+  // Activity Log in Security tab
+  activityCard:           { borderRadius: 18, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(61,107,234,0.2)' },
+  activityCardInnerBorder:{ position: 'absolute', top: 0, left: 0, right: 0, height: 1, backgroundColor: 'rgba(255,255,255,0.06)', borderTopLeftRadius: 18, borderTopRightRadius: 18 },
+  activityTouchable:      { paddingHorizontal: 16, paddingVertical: 14 },
+  activityCameraRow:      { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
+  activityCameraText:     { fontSize: 11, color: 'rgba(255,255,255,0.45)', letterSpacing: 0.2 },
+  activitySeparator:      { height: 1, backgroundColor: 'rgba(255,255,255,0.06)', marginHorizontal: 16 },
+  sectionAction:          { fontSize: 13, fontWeight: '600', color: '#0A84FF', letterSpacing: 0.2 },
 });
