@@ -1788,7 +1788,7 @@ function SettingsItemRow({ item, onToggle, onPress }: {
   );
 }
 
-function SettingsScreen() {
+function SettingsScreen({ onScroll }: { onScroll: (e: NativeSyntheticEvent<NativeScrollEvent>) => void }) {
   const handleToggle = (sectionId: string, itemId: string, value: boolean) => {
     console.log(`Toggle: ${sectionId}.${itemId} = ${value}`);
     // Handle toggle logic here
@@ -1822,7 +1822,8 @@ function SettingsScreen() {
   return (
     <>
       <SettingsNavBar />
-      <ScrollView style={S.scroll} contentContainerStyle={S.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView style={S.scroll} contentContainerStyle={S.scrollContent} showsVerticalScrollIndicator={false}
+        onScroll={onScroll} scrollEventThrottle={16}>
         <View style={S.heroSection}>
           <Text style={S.heroSub}>Account & Preferences</Text>
           <Text style={S.heroTitle}>Settings</Text>
@@ -1855,7 +1856,7 @@ function SettingsScreen() {
 }
 
 // ─── Main Energy Monitor Screen ──────────────────────────────────────────────
-function EnergyMonitorScreen() {
+function EnergyMonitorScreen({ onScroll }: { onScroll: (e: NativeSyntheticEvent<NativeScrollEvent>) => void }) {
   const [devices, setDevices] = useState<Device[]>([]);
   const [filter, setFilter] = useState<TimeFilter>('today');
   const [showAllCutoffs, setShowAllCutoffs] = useState(false);
@@ -1888,6 +1889,8 @@ function EnergyMonitorScreen() {
         style={S.scroll}
         contentContainerStyle={S.scrollContent}
         showsVerticalScrollIndicator={false}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
       >
         {/* ── Period Selector ─────────────────────────────────────── */}
         <View style={S.section}>
@@ -2267,7 +2270,9 @@ export default function HomeScreen() {
       <TabPanel visible={activeTab === 'security'}>
         <SecurityNavBar />
         <ScrollView style={S.scroll} contentContainerStyle={S.scrollContent}
-          showsVerticalScrollIndicator={false}>
+          showsVerticalScrollIndicator={false}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}>
           <View style={S.heroSection}>
             <Text style={S.heroSub}>Security</Text>
             <Text style={S.heroTitle}>Security Center</Text>
@@ -2301,12 +2306,12 @@ export default function HomeScreen() {
 
       {/* ── ENERGY TAB ───────────────────────────────────────────────────── */}
       <TabPanel visible={activeTab === 'energy'}>
-        <EnergyMonitorScreen />
+        <EnergyMonitorScreen onScroll={handleScroll} />
       </TabPanel>
 
       {/* ── SETTINGS TAB ─────────────────────────────────────────────────── */}
       <TabPanel visible={activeTab === 'settings'}>
-        <SettingsScreen />
+        <SettingsScreen onScroll={handleScroll} />
       </TabPanel>
 
       <TabBar active={activeTab} onChange={(id) => {
