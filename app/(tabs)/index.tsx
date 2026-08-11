@@ -179,7 +179,11 @@ function HomeNavBar({ alerts }: { alerts: number }) {
             </View>
             <Text style={S.navBrand}>LuxeHome</Text>
           </View>
-          <TouchableOpacity style={S.navIconBtn} accessibilityLabel="Notifications">
+          <TouchableOpacity 
+            style={S.navIconBtn} 
+            accessibilityLabel="Notifications"
+            onPress={() => router.push('/notifications')}
+          >
             <BlurView intensity={40} tint="dark" style={S.navIconGlass}>
               <Ionicons name="notifications-outline" size={20} color="rgba(255,255,255,0.88)" />
             </BlurView>
@@ -1679,7 +1683,7 @@ function SettingsNavBar() {
 
 function UserProfileCard() {
   return (
-    <TouchableOpacity style={S.profileCard} activeOpacity={0.8}>
+    <TouchableOpacity style={S.profileCard} activeOpacity={0.8} onPress={() => router.push('/profile')}>
       <View style={[S.profileBloom, { backgroundColor: '#0A84FF15' }]} />
       <BlurView intensity={42} tint="dark" style={StyleSheet.absoluteFillObject} />
       <View style={S.profileSpecular} />
@@ -1793,7 +1797,11 @@ function SettingsScreen() {
   const handleNavigate = (sectionId: string, itemId: string) => {
     console.log(`Navigate: ${sectionId}.${itemId}`);
     // Handle navigation logic here
-    if (itemId === 'logout') {
+    if (itemId === 'profile') {
+      router.push('/profile');
+    } else if (itemId === 'notifications-manage') {
+      router.push('/notifications');
+    } else if (itemId === 'logout') {
       Alert.alert('Log Out', 'Are you sure you want to log out?', [
         { text: 'Cancel', style: 'cancel' },
         { text: 'Log Out', style: 'destructive', onPress: () => console.log('Logging out...') },
