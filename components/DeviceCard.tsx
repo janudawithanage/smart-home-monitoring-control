@@ -27,6 +27,8 @@ const DEVICE_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   tv: 'tv-outline',
   speaker: 'volume-high-outline',
   outlet: 'flash-outline',
+  iron: 'water-outline',
+  multiSwitch: 'apps-outline',
 };
 
 const { width } = Dimensions.get('window');
@@ -38,8 +40,13 @@ export default function DeviceCard({ device, onToggle }: Props) {
   const accentColor = Colors.device[device.type] ?? Colors.accent.blue;
 
   const handlePress = useCallback(() => {
-    router.push(`/device/${device.id}`);
-  }, [device.id]);
+    // Route to multi-switch screen for multi-switch devices
+    if (device.type === 'multiSwitch') {
+      router.push(`/multi-switch/${device.id}`);
+    } else {
+      router.push(`/device/${device.id}`);
+    }
+  }, [device.id, device.type]);
 
   const handleToggle = useCallback(() => {
     onToggle(device.id);

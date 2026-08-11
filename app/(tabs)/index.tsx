@@ -60,7 +60,7 @@ const CATEGORIES: DeviceCategory[] = [
 const QUICK_ACTIONS: { id: string; icon: keyof typeof Ionicons.glyphMap; label: string }[] = [
   { id: 'addFloor',  icon: 'add-circle-outline',    label: 'Add Floor'       },
   { id: 'addDevice', icon: 'hardware-chip-outline', label: 'Add Device'      },
-  { id: 'reports',   icon: 'bar-chart-outline',     label: 'View Reports'    },
+  { id: 'multiSwitch', icon: 'apps-outline',        label: 'Multi-Switch'    },
   { id: 'floorPlan', icon: 'map-outline',           label: 'Open Floor Plan' },
 ];
 const TAB_ICONS: Record<string, {
@@ -422,6 +422,7 @@ function QuickActionsBar({ onGoFloors, onAddDevice }: { onGoFloors: () => void; 
             onPress={() => {
               if (a.id === 'addFloor') { onGoFloors(); }
               else if (a.id === 'addDevice') { onAddDevice(); }
+              else if (a.id === 'multiSwitch') { router.push('/multi-switch/d17'); }
               else if (a.id === 'floorPlan') { router.push('/floor-plan'); }
             }}
             accessibilityRole="button" accessibilityLabel={a.label}>

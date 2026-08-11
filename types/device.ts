@@ -12,6 +12,15 @@ export type DeviceType =
 
 export type DeviceStatus = 'on' | 'off' | 'error' | 'offline';
 
+export type SwitchCircuitStatus = 'on' | 'off' | 'error' | 'disconnected';
+
+export interface SwitchCircuit {
+  id: string;
+  name: string;
+  status: SwitchCircuitStatus;
+  power?: number; // watts
+}
+
 export interface Device {
   id: string;
   name: string;
@@ -24,6 +33,8 @@ export interface Device {
   unit?: string;
   iconName?: string;
   lastUpdated: string; // ISO date string
+  /** For multi-switch devices, stores individual switch states */
+  circuits?: SwitchCircuit[];
 }
 
 export interface Floor {

@@ -763,7 +763,12 @@ export default function FloorPlanScreen() {
   );
 
   const handlePinPress = useCallback((device: Device) => {
-    router.push(`/device/${device.id}`);
+    // Route to multi-switch screen for multi-switch devices
+    if (device.type === 'multiSwitch') {
+      router.push(`/multi-switch/${device.id}`);
+    } else {
+      router.push(`/device/${device.id}`);
+    }
   }, []);
 
   const handleToggle = useCallback(async (deviceId: string) => {
