@@ -1552,6 +1552,300 @@ function AutoOffEventCard({ cutoff }: { cutoff: SafetyCutoff }) {
   );
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// SETTINGS TAB COMPONENTS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+interface SettingsSection {
+  id: string;
+  title: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  color: string;
+  items: SettingsItem[];
+}
+
+interface SettingsItem {
+  id: string;
+  label: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  type: 'toggle' | 'navigate' | 'action';
+  value?: boolean;
+  badge?: string;
+  danger?: boolean;
+}
+
+const SETTINGS_SECTIONS: SettingsSection[] = [
+  {
+    id: 'account',
+    title: 'Account',
+    icon: 'person',
+    color: '#0A84FF',
+    items: [
+      { id: 'profile', label: 'Edit Profile', icon: 'person-outline', type: 'navigate' },
+      { id: 'preferences', label: 'Preferences', icon: 'options-outline', type: 'navigate' },
+      { id: 'language', label: 'Language', icon: 'globe-outline', type: 'navigate', badge: 'English' },
+    ],
+  },
+  {
+    id: 'notifications',
+    title: 'Notifications',
+    icon: 'notifications',
+    color: '#FF9F0A',
+    items: [
+      { id: 'push', label: 'Push Notifications', icon: 'notifications-outline', type: 'toggle', value: true },
+      { id: 'email', label: 'Email Notifications', icon: 'mail-outline', type: 'toggle', value: false },
+      { id: 'alerts', label: 'Device Alerts', icon: 'alert-circle-outline', type: 'toggle', value: true },
+      { id: 'safety', label: 'Safety Alerts', icon: 'shield-outline', type: 'toggle', value: true },
+    ],
+  },
+  {
+    id: 'security',
+    title: 'Security',
+    icon: 'lock-closed',
+    color: '#FF375F',
+    items: [
+      { id: 'biometric', label: 'Face ID / Touch ID', icon: 'finger-print-outline', type: 'toggle', value: true },
+      { id: 'password', label: 'Change Password', icon: 'key-outline', type: 'navigate' },
+      { id: '2fa', label: 'Two-Factor Authentication', icon: 'shield-checkmark-outline', type: 'toggle', value: false },
+    ],
+  },
+  {
+    id: 'smart-home',
+    title: 'Smart Home',
+    icon: 'home',
+    color: '#30D158',
+    items: [
+      { id: 'auto-schedule', label: 'Auto Scheduling', icon: 'time-outline', type: 'toggle', value: true },
+      { id: 'energy-save', label: 'Energy Saving Mode', icon: 'leaf-outline', type: 'toggle', value: false },
+      { id: 'voice-control', label: 'Voice Control', icon: 'mic-outline', type: 'toggle', value: true },
+      { id: 'geofencing', label: 'Geofencing', icon: 'location-outline', type: 'toggle', value: false },
+    ],
+  },
+  {
+    id: 'support',
+    title: 'Help & Support',
+    icon: 'help-circle',
+    color: '#BF5AF2',
+    items: [
+      { id: 'help', label: 'Help Center', icon: 'book-outline', type: 'navigate' },
+      { id: 'contact', label: 'Contact Support', icon: 'chatbubble-outline', type: 'navigate' },
+      { id: 'feedback', label: 'Send Feedback', icon: 'mail-open-outline', type: 'navigate' },
+      { id: 'rate', label: 'Rate App', icon: 'star-outline', type: 'action' },
+    ],
+  },
+  {
+    id: 'about',
+    title: 'About',
+    icon: 'information-circle',
+    color: '#64D2FF',
+    items: [
+      { id: 'version', label: 'App Version', icon: 'code-outline', type: 'navigate', badge: '1.0.0' },
+      { id: 'terms', label: 'Terms of Service', icon: 'document-text-outline', type: 'navigate' },
+      { id: 'privacy', label: 'Privacy Policy', icon: 'shield-outline', type: 'navigate' },
+      { id: 'licenses', label: 'Open Source Licenses', icon: 'code-slash-outline', type: 'navigate' },
+    ],
+  },
+  {
+    id: 'danger',
+    title: 'Danger Zone',
+    icon: 'warning',
+    color: '#FF375F',
+    items: [
+      { id: 'reset', label: 'Reset All Settings', icon: 'refresh-outline', type: 'action', danger: true },
+      { id: 'logout', label: 'Log Out', icon: 'log-out-outline', type: 'action', danger: true },
+      { id: 'delete', label: 'Delete Account', icon: 'trash-outline', type: 'action', danger: true },
+    ],
+  },
+];
+
+function SettingsNavBar() {
+  return (
+    <View style={S.navOuter}>
+      <View style={S.navBloom} />
+      <BlurView intensity={55} tint="dark" style={S.navPill}>
+        <View style={S.navSpecular} />
+        <View style={S.navContent}>
+          <View style={S.navLeft}>
+            <View style={S.navLogoRing}>
+              <Image source={require('@/assets/images/logo.png')} style={S.navLogoImg} resizeMode="contain" />
+            </View>
+            <Text style={S.navBrand}>Settings</Text>
+          </View>
+        </View>
+      </BlurView>
+    </View>
+  );
+}
+
+function UserProfileCard() {
+  return (
+    <TouchableOpacity style={S.profileCard} activeOpacity={0.8}>
+      <View style={[S.profileBloom, { backgroundColor: '#0A84FF15' }]} />
+      <BlurView intensity={42} tint="dark" style={StyleSheet.absoluteFillObject} />
+      <View style={S.profileSpecular} />
+      <View style={S.profileContent}>
+        <View style={S.profileAvatar}>
+          <LinearGradient colors={['#1a6fff', '#0A84FF']} style={StyleSheet.absoluteFillObject} />
+          <Text style={S.profileInitials}>{USER_NAME[0]}</Text>
+        </View>
+        <View style={S.profileInfo}>
+          <Text style={S.profileName}>{USER_NAME} Withanage</Text>
+          <Text style={S.profileEmail}>januda@smarthome.com</Text>
+          <View style={S.profileBadge}>
+            <Ionicons name="shield-checkmark" size={12} color="#30D158" />
+            <Text style={S.profileBadgeText}>Premium Member</Text>
+          </View>
+        </View>
+        <Ionicons name="chevron-forward" size={20} color="rgba(255,255,255,0.4)" />
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+function SettingsSectionCard({ section, onToggle, onNavigate }: {
+  section: SettingsSection;
+  onToggle: (sectionId: string, itemId: string, value: boolean) => void;
+  onNavigate: (sectionId: string, itemId: string) => void;
+}) {
+  return (
+    <View style={S.settingsSectionCard}>
+      <View style={S.settingsSectionHeader}>
+        <View style={[S.settingsSectionIcon, { backgroundColor: `${section.color}18`, borderColor: `${section.color}30` }]}>
+          <Ionicons name={section.icon} size={18} color={section.color} />
+        </View>
+        <Text style={S.settingsSectionTitle}>{section.title}</Text>
+      </View>
+      <View style={S.settingsItemsContainer}>
+        <BlurView intensity={38} tint="dark" style={StyleSheet.absoluteFillObject} />
+        <View style={S.settingsItemsInnerBorder} />
+        {section.items.map((item, index) => (
+          <View key={item.id}>
+            <SettingsItemRow
+              item={item}
+              onToggle={(value) => onToggle(section.id, item.id, value)}
+              onPress={() => onNavigate(section.id, item.id)}
+            />
+            {index < section.items.length - 1 && <View style={S.settingsItemSeparator} />}
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+function SettingsItemRow({ item, onToggle, onPress }: {
+  item: SettingsItem;
+  onToggle: (value: boolean) => void;
+  onPress: () => void;
+}) {
+  const [value, setValue] = useState(item.value || false);
+
+  const handleToggle = () => {
+    const newValue = !value;
+    setValue(newValue);
+    onToggle(newValue);
+  };
+
+  return (
+    <TouchableOpacity
+      style={S.settingsItemRow}
+      onPress={item.type === 'toggle' ? handleToggle : onPress}
+      activeOpacity={0.7}
+    >
+      <View style={S.settingsItemLeft}>
+        <View style={[S.settingsItemIcon, item.danger && { backgroundColor: '#FF375F18', borderColor: '#FF375F30' }]}>
+          <Ionicons
+            name={item.icon}
+            size={18}
+            color={item.danger ? '#FF375F' : 'rgba(255,255,255,0.7)'}
+          />
+        </View>
+        <Text style={[S.settingsItemLabel, item.danger && { color: '#FF375F' }]}>{item.label}</Text>
+      </View>
+      <View style={S.settingsItemRight}>
+        {item.badge && (
+          <View style={S.settingsBadge}>
+            <Text style={S.settingsBadgeText}>{item.badge}</Text>
+          </View>
+        )}
+        {item.type === 'toggle' && (
+          <View style={[S.toggleSwitch, value && S.toggleSwitchActive]}>
+            <View style={[S.toggleThumb, value && S.toggleThumbActive]} />
+          </View>
+        )}
+        {item.type === 'navigate' && (
+          <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.3)" />
+        )}
+        {item.type === 'action' && (
+          <Ionicons name="arrow-forward" size={18} color={item.danger ? '#FF375F' : 'rgba(255,255,255,0.4)'} />
+        )}
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+function SettingsScreen() {
+  const handleToggle = (sectionId: string, itemId: string, value: boolean) => {
+    console.log(`Toggle: ${sectionId}.${itemId} = ${value}`);
+    // Handle toggle logic here
+  };
+
+  const handleNavigate = (sectionId: string, itemId: string) => {
+    console.log(`Navigate: ${sectionId}.${itemId}`);
+    // Handle navigation logic here
+    if (itemId === 'logout') {
+      Alert.alert('Log Out', 'Are you sure you want to log out?', [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Log Out', style: 'destructive', onPress: () => console.log('Logging out...') },
+      ]);
+    } else if (itemId === 'delete') {
+      Alert.alert('Delete Account', 'This action cannot be undone. Are you sure?', [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: () => console.log('Deleting account...') },
+      ]);
+    } else if (itemId === 'reset') {
+      Alert.alert('Reset Settings', 'This will reset all settings to default. Continue?', [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Reset', style: 'destructive', onPress: () => console.log('Resetting...') },
+      ]);
+    }
+  };
+
+  return (
+    <>
+      <SettingsNavBar />
+      <ScrollView style={S.scroll} contentContainerStyle={S.scrollContent} showsVerticalScrollIndicator={false}>
+        <View style={S.heroSection}>
+          <Text style={S.heroSub}>Account & Preferences</Text>
+          <Text style={S.heroTitle}>Settings</Text>
+          <Text style={S.heroDesc}>Customize your smart home experience</Text>
+        </View>
+
+        <UserProfileCard />
+
+        {SETTINGS_SECTIONS.map((section) => (
+          <SettingsSectionCard
+            key={section.id}
+            section={section}
+            onToggle={handleToggle}
+            onNavigate={handleNavigate}
+          />
+        ))}
+
+        <View style={[S.section, { marginBottom: IOS_BOTTOM + 16 }]}>
+          <View style={S.appInfoCard}>
+            <Text style={S.appInfoText}>LuxeHome Smart Home</Text>
+            <Text style={S.appInfoVersion}>Version 1.0.0 (Build 100)</Text>
+            <Text style={S.appInfoCopyright}>© 2026 LuxeHome. All rights reserved.</Text>
+          </View>
+        </View>
+
+        <View style={{ height: IOS_BOTTOM + 110 }} />
+      </ScrollView>
+    </>
+  );
+}
+
 // ─── Main Energy Monitor Screen ──────────────────────────────────────────────
 function EnergyMonitorScreen() {
   const [devices, setDevices] = useState<Device[]>([]);
@@ -2002,6 +2296,11 @@ export default function HomeScreen() {
         <EnergyMonitorScreen />
       </TabPanel>
 
+      {/* ── SETTINGS TAB ─────────────────────────────────────────────────── */}
+      <TabPanel visible={activeTab === 'settings'}>
+        <SettingsScreen />
+      </TabPanel>
+
       <TabBar active={activeTab} onChange={(id) => {
         setActiveTab(id);
       }} translateY={tabBarAnim} />
@@ -2363,4 +2662,38 @@ const S = StyleSheet.create({
   eExportBorder:          { position: 'absolute', top: 0, left: 0, right: 0, height: 1, backgroundColor: 'rgba(255,255,255,0.12)' },
   eExportTitle:           { fontSize: 15, fontWeight: '700', color: '#0A84FF', zIndex: 1 },
   eExportSub:             { fontSize: 12, fontWeight: '400', color: 'rgba(10,132,255,0.65)', zIndex: 1, marginTop: 2 },
+  // Settings tab styles
+  profileCard:             { borderRadius: 20, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(10,132,255,0.25)', marginBottom: 24 },
+  profileBloom:            { position: 'absolute', top: -10, left: -10, right: -10, height: 80, borderRadius: 40 },
+  profileSpecular:         { position: 'absolute', top: 0, left: 0, right: 0, height: 1, backgroundColor: 'rgba(255,255,255,0.12)' },
+  profileContent:          { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 14 },
+  profileAvatar:           { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', borderWidth: 2, borderColor: 'rgba(10,132,255,0.3)' },
+  profileInitials:         { fontSize: 24, fontWeight: '700', color: '#ffffff', letterSpacing: 1 },
+  profileInfo:             { flex: 1 },
+  profileName:             { fontSize: 18, fontWeight: '700', color: '#ffffff', marginBottom: 4, letterSpacing: -0.3 },
+  profileEmail:            { fontSize: 14, fontWeight: '500', color: 'rgba(255,255,255,0.6)', marginBottom: 6 },
+  profileBadge:            { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start', backgroundColor: 'rgba(48,209,88,0.15)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(48,209,88,0.3)' },
+  profileBadgeText:        { fontSize: 11, fontWeight: '600', color: '#30D158', letterSpacing: 0.3 },
+  settingsSectionCard:     { marginBottom: 24 },
+  settingsSectionHeader:   { flexDirection: 'row', alignItems: 'center', marginBottom: 12, gap: 10 },
+  settingsSectionIcon:     { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
+  settingsSectionTitle:    { fontSize: 17, fontWeight: '600', color: '#ffffff', letterSpacing: -0.3 },
+  settingsItemsContainer:  { borderRadius: 18, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
+  settingsItemsInnerBorder:{ position: 'absolute', top: 0, left: 0, right: 0, height: 1, backgroundColor: 'rgba(255,255,255,0.08)' },
+  settingsItemRow:         { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14 },
+  settingsItemLeft:        { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
+  settingsItemIcon:        { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+  settingsItemLabel:       { fontSize: 15, fontWeight: '500', color: '#ffffff', letterSpacing: -0.2 },
+  settingsItemRight:       { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  settingsBadge:           { backgroundColor: 'rgba(255,255,255,0.08)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 },
+  settingsBadgeText:       { fontSize: 12, fontWeight: '600', color: 'rgba(255,255,255,0.6)' },
+  settingsItemSeparator:   { height: 1, backgroundColor: 'rgba(255,255,255,0.06)', marginLeft: 64 },
+  toggleSwitch:            { width: 48, height: 28, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.15)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)', padding: 2, justifyContent: 'center' },
+  toggleSwitchActive:      { backgroundColor: '#0A84FF', borderColor: '#0A84FF' },
+  toggleThumb:             { width: 22, height: 22, borderRadius: 11, backgroundColor: '#ffffff', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 2, elevation: 2 },
+  toggleThumbActive:       { marginLeft: 20 },
+  appInfoCard:             { alignItems: 'center', paddingVertical: 20 },
+  appInfoText:             { fontSize: 14, fontWeight: '600', color: 'rgba(255,255,255,0.5)', marginBottom: 4 },
+  appInfoVersion:          { fontSize: 12, fontWeight: '500', color: 'rgba(255,255,255,0.35)', marginBottom: 8 },
+  appInfoCopyright:        { fontSize: 11, fontWeight: '500', color: 'rgba(255,255,255,0.25)' },
 });
