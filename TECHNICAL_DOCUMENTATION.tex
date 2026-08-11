@@ -1,0 +1,1645 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[margin=1in]{geometry}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{tikz}
+\usepackage{tabularx}
+\usepackage{booktabs}
+\usepackage{listings}
+\usepackage{fancyhdr}
+
+\definecolor{implemented}{RGB}{48,209,88}
+\definecolor{pending}{RGB}{255,159,10}
+\definecolor{required}{RGB}{255,55,95}
+
+\pagestyle{fancy}
+\fancyhf{}
+\rhead{SCS3311 - Smart Home System}
+\lhead{Technical Documentation}
+\rfoot{Page \thepage}
+
+\title{\textbf{Smart Home Monitoring \& Control System}\\
+\large Technical Documentation\\
+\vspace{0.5cm}
+\large SCS 3311: Mobile Application Design \& Development\\
+Mini-Project}
+\author{University of Colombo School of Computing}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+\newpage
+
+\tableofcontents
+\newpage
+
+\section{Executive Summary}
+
+This document provides comprehensive technical documentation for the Smart Home Monitoring \& Control System developed as part of SCS 3311. The system consists of a React Native mobile application with complete UI/UX implementation, designed for cloud-based backend integration and hardware simulation.
+
+\subsection{Project Status}
+\begin{itemize}[leftmargin=*]
+    \item \textcolor{implemented}{\textbf{COMPLETED:}} Full mobile application frontend with all required UI/UX components
+    \item \textcolor{pending}{\textbf{IN PROGRESS:}} Backend infrastructure and cloud database implementation
+    \item \textcolor{required}{\textbf{REQUIRED:}} Hardware simulator dashboard and real-time synchronization
+\end{itemize}
+
+\subsection{Technology Stack}
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Mobile Framework:} React Native with Expo SDK v54
+    \item \textbf{Navigation:} Expo Router (file-based routing)
+    \item \textbf{UI Components:} Custom glassmorphism design system
+    \item \textbf{Planned Backend:} Supabase (PostgreSQL + Real-time subscriptions)
+    \item \textbf{State Management:} Local mock data (to be replaced with cloud sync)
+\end{itemize}
+
+\newpage
+\section{Implementation Analysis}
+
+\subsection{What Has Been Implemented (Frontend/UI/UX)}
+
+
+The mobile application frontend is \textbf{fully implemented} with all required functional screens and UI components as specified in the project requirements.
+
+\subsubsection{Multi-Floor Interactive Dashboard}
+\begin{itemize}[leftmargin=*]
+    \item \textcolor{implemented}{\textbf{[IMPLEMENTED]}} Floor management interface with add/edit/delete operations
+    \item \textcolor{implemented}{\textbf{[IMPLEMENTED]}} Floor plan visualization with grid overlay support
+    \item \textcolor{implemented}{\textbf{[IMPLEMENTED]}} Device pin placement on floor plans
+    \item \textcolor{implemented}{\textbf{[IMPLEMENTED]}} Image picker integration for custom floor plan uploads
+    \item \textcolor{implemented}{\textbf{[IMPLEMENTED]}} Multi-floor navigation and selection
+    \item \textcolor{implemented}{\textbf{[IMPLEMENTED]}} Floor-level device statistics (total, active, offline)
+\end{itemize}
+
+\textbf{Screens Implemented:}
+\begin{itemize}
+    \item \texttt{app/(tabs)/index.tsx} - Main dashboard with floor overview
+    \item \texttt{app/floors/index.tsx} - Comprehensive floor management
+    \item \texttt{app/floor-plan/index.tsx} - Interactive floor plan editor
+\end{itemize}
+
+\subsubsection{Heterogeneous Device Profiles}
+\begin{itemize}[leftmargin=*]
+    \item \textcolor{implemented}{\textbf{[IMPLEMENTED]}} Device type system supporting 10 device categories:
+    \begin{itemize}
+        \item Light bulbs with brightness control (0-100\%)
+        \item Smart thermostats with temperature display
+        \item Smart locks (locked/unlocked states)
+        \item Security cameras with mock stream URIs
+        \item Fans with speed control
+        \item Smart TVs, speakers, and general outlets
+        \item Safety-critical devices (e.g., clothing irons)
+        \item Multi-switch units (2, 3, 5-switch panels)
+    \end{itemize}
+    \item \textcolor{implemented}{\textbf{[IMPLEMENTED]}} Device status indicators (ON, OFF, ERROR, DISCONNECTED)
+    \item \textcolor{implemented}{\textbf{[IMPLEMENTED]}} Reactive UI updates on device state changes
+    \item \textcolor{implemented}{\textbf{[IMPLEMENTED]}} Device control interfaces with specialized controls per type
+\end{itemize}
+
+
+\textbf{Screens Implemented:}
+\begin{itemize}
+    \item \texttt{app/device/[id].tsx} - Standard device detail view
+    \item \texttt{app/outlet/[id].tsx} - Electrical outlet control interface
+    \item \texttt{app/multi-switch/[id].tsx} - Multi-switch gang-box controller
+    \item \texttt{app/security/[id].tsx} - Security camera viewer
+\end{itemize}
+
+\subsubsection{Scheduling \& Safety Features}
+\begin{itemize}[leftmargin=*]
+    \item \textcolor{implemented}{\textbf{[IMPLEMENTED]}} Scheduling interface for time-based automation
+    \item \textcolor{implemented}{\textbf{[IMPLEMENTED]}} Safety timeout configuration for fire-hazard devices
+    \item \textcolor{implemented}{\textbf{[IMPLEMENTED]}} Maximum operation duration settings
+    \item \textcolor{implemented}{\textbf{[IMPLEMENTED]}} Schedule creation with day-of-week selection
+    \item \textcolor{implemented}{\textbf{[IMPLEMENTED]}} Schedule enable/disable toggles
+    \item \textcolor{pending}{\textbf{[UI ONLY]}} Backend enforcement of safety cutoffs not yet implemented
+\end{itemize}
+
+\textbf{Screens Implemented:}
+\begin{itemize}
+    \item \texttt{app/schedule/[id].tsx} - Device scheduling interface
+\end{itemize}
+
+\subsubsection{Energy \& Usage Reporting}
+\begin{itemize}[leftmargin=*]
+    \item \textcolor{implemented}{\textbf{[IMPLEMENTED]}} Energy monitoring dashboard UI
+    \item \textcolor{implemented}{\textbf{[IMPLEMENTED]}} Usage statistics visualization (mock data)
+    \item \textcolor{implemented}{\textbf{[IMPLEMENTED]}} Device consumption tracking interface
+    \item \textcolor{pending}{\textbf{[UI ONLY]}} Real energy data collection not implemented
+\end{itemize}
+
+\textbf{Screens Implemented:}
+\begin{itemize}
+    \item \texttt{app/energy/index.tsx} - Energy usage dashboard
+\end{itemize}
+
+
+\subsubsection{User Profile \& Notifications}
+\begin{itemize}[leftmargin=*]
+    \item \textcolor{implemented}{\textbf{[IMPLEMENTED]}} User profile management interface
+    \item \textcolor{implemented}{\textbf{[IMPLEMENTED]}} Notification center with alert history
+    \item \textcolor{implemented}{\textbf{[IMPLEMENTED]}} Settings and preferences screens
+    \item \textcolor{implemented}{\textbf{[IMPLEMENTED]}} Authentication UI (login/register screens)
+    \item \textcolor{pending}{\textbf{[UI ONLY]}} Backend authentication not connected
+\end{itemize}
+
+\textbf{Screens Implemented:}
+\begin{itemize}
+    \item \texttt{app/(auth)/login.tsx} - Login screen
+    \item \texttt{app/(auth)/register.tsx} - Registration screen
+    \item \texttt{app/profile/index.tsx} - User profile management
+    \item \texttt{app/notifications/index.tsx} - Notification center
+\end{itemize}
+
+\subsubsection{UI/UX Design System}
+\begin{itemize}[leftmargin=*]
+    \item \textcolor{implemented}{\textbf{[IMPLEMENTED]}} Custom glassmorphism design language
+    \item \textcolor{implemented}{\textbf{[IMPLEMENTED]}} Consistent color theming with device-specific accents
+    \item \textcolor{implemented}{\textbf{[IMPLEMENTED]}} Animated transitions and interactions
+    \item \textcolor{implemented}{\textbf{[IMPLEMENTED]}} Responsive layouts for various screen sizes
+    \item \textcolor{implemented}{\textbf{[IMPLEMENTED]}} Accessibility labels and roles
+    \item \textcolor{implemented}{\textbf{[IMPLEMENTED]}} Custom reusable components (StatusBadge, DeviceCard, FloorCard, etc.)
+\end{itemize}
+
+\textbf{Component Library:}
+\begin{itemize}
+    \item \texttt{components/DeviceCard.tsx} - Device card component
+    \item \texttt{components/FloorCard.tsx} - Floor visualization card
+    \item \texttt{components/StatusBadge.tsx} - Status indicator component
+    \item \texttt{components/SwitchButton.tsx} - Animated switch control
+    \item \texttt{components/ui/*} - Additional UI primitives
+\end{itemize}
+
+
+\subsection{What Requires Full CRUD Implementation (Backend)}
+
+The following features have \textbf{UI interfaces completed} but require \textbf{full backend CRUD operations} with cloud database integration.
+
+\subsubsection{Required Backend Implementation}
+
+\paragraph{Database Schema \& CRUD Operations}
+\begin{itemize}[leftmargin=*]
+    \item \textcolor{required}{\textbf{[REQUIRED]}} Supabase PostgreSQL database setup
+    \item \textcolor{required}{\textbf{[REQUIRED]}} \textbf{Floors Table} with CRUD operations:
+    \begin{itemize}
+        \item CREATE: Add new floor with name, level, floor plan image
+        \item READ: Fetch all floors, fetch single floor by ID
+        \item UPDATE: Modify floor details, update floor plan image
+        \item DELETE: Remove floor and cascade device associations
+    \end{itemize}
+    \item \textcolor{required}{\textbf{[REQUIRED]}} \textbf{Devices Table} with CRUD operations:
+    \begin{itemize}
+        \item CREATE: Add new device with type, floor assignment, room name
+        \item READ: Fetch all devices, fetch by floor, fetch by ID
+        \item UPDATE: Toggle device status, update device properties (brightness, temperature, etc.)
+        \item DELETE: Remove device and associated schedules
+    \end{itemize}
+    \item \textcolor{required}{\textbf{[REQUIRED]}} \textbf{Multi-Switch Circuits Table}:
+    \begin{itemize}
+        \item Store individual switch states within gang-box units
+        \item CRUD for individual circuit toggle operations
+        \item Circuit naming and power monitoring
+    \end{itemize}
+    \item \textcolor{required}{\textbf{[REQUIRED]}} \textbf{Schedules Table}:
+    \begin{itemize}
+        \item Time-based schedule creation (time, days, action)
+        \item Safety timeout schedule configuration
+        \item Enable/disable schedule operations
+        \item Associate schedules with devices
+    \end{itemize}
+    \item \textcolor{required}{\textbf{[REQUIRED]}} \textbf{Floor Plan Pins Table}:
+    \begin{itemize}
+        \item Store device X,Y coordinates on floor plans
+        \item Update pin positions on drag operations
+    \end{itemize}
+    \item \textcolor{required}{\textbf{[REQUIRED]}} \textbf{Users \& Authentication}:
+    \begin{itemize}
+        \item Supabase Auth integration
+        \item User registration and login
+        \item Session management
+        \item Row-level security policies
+    \end{itemize}
+\end{itemize}
+
+
+\paragraph{Real-Time Synchronization}
+\begin{itemize}[leftmargin=*]
+    \item \textcolor{required}{\textbf{[REQUIRED]}} Bidirectional state sync between mobile app and database
+    \item \textcolor{required}{\textbf{[REQUIRED]}} Supabase Real-time subscriptions for instant updates
+    \item \textcolor{required}{\textbf{[REQUIRED]}} WebSocket connections for live device status changes
+    \item \textcolor{required}{\textbf{[REQUIRED]}} Optimistic UI updates with rollback on failure
+    \item \textcolor{required}{\textbf{[REQUIRED]}} Conflict resolution for simultaneous edits
+\end{itemize}
+
+\paragraph{Server-Side Safety Logic}
+\begin{itemize}[leftmargin=*]
+    \item \textcolor{required}{\textbf{[REQUIRED]}} Cloud function / worker process for safety cutoff enforcement
+    \item \textcolor{required}{\textbf{[REQUIRED]}} Monitor device runtime against \texttt{max\_on\_duration}
+    \item \textcolor{required}{\textbf{[REQUIRED]}} Auto-shutoff for fire-hazard devices (irons, heaters)
+    \item \textcolor{required}{\textbf{[REQUIRED]}} Push notifications on safety cutoff triggers
+    \item \textcolor{required}{\textbf{[REQUIRED]}} Alert generation and persistence
+\end{itemize}
+
+\paragraph{Service Layer Migration}
+Current implementation uses mock data services that must be replaced:
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Current:} \texttt{services/deviceService.ts} uses in-memory \texttt{DEVICES} and \texttt{FLOORS} arrays
+    \item \textcolor{required}{\textbf{[REQUIRED]}} Replace all mock implementations with Supabase queries
+    \item \textcolor{required}{\textbf{[REQUIRED]}} Implement error handling and offline support
+    \item \textcolor{required}{\textbf{[REQUIRED]}} Add data validation and sanitization
+\end{itemize}
+
+\textbf{Example Current Implementation (Mock):}
+\begin{verbatim}
+export async function getFloors(): Promise<Floor[]> {
+  return Promise.resolve(FLOORS); // In-memory array
+}
+\end{verbatim}
+
+\textbf{Required Implementation (Supabase):}
+\begin{verbatim}
+export async function getFloors(): Promise<Floor[]> {
+  const { data, error } = await supabase
+    .from('floors')
+    .select('*')
+    .order('level', { ascending: true });
+  if (error) throw error;
+  return data;
+}
+\end{verbatim}
+
+
+\subsection{Hardware Simulator Dashboard (Required)}
+
+The hardware simulator is \textbf{completely unimplemented} and represents a critical deliverable.
+
+\subsubsection{Simulator Requirements}
+\begin{itemize}[leftmargin=*]
+    \item \textcolor{required}{\textbf{[REQUIRED]}} Web-based dashboard representing physical IoT devices
+    \item \textcolor{required}{\textbf{[REQUIRED]}} Real-time visualization of device states synchronized with database
+    \item \textcolor{required}{\textbf{[REQUIRED]}} Visual indicators for all device types:
+    \begin{itemize}
+        \item Light bulbs: ON/OFF indicators with brightness levels
+        \item Switches: Toggle button representations
+        \item Cameras: Mock video feed placeholders
+        \item Outlets: Power state indicators
+        \item Multi-switch panels: Multiple switch visualization
+    \end{itemize}
+    \item \textcolor{required}{\textbf{[REQUIRED]}} Database listener: Subscribe to Supabase real-time changes
+    \item \textcolor{required}{\textbf{[REQUIRED]}} Automatic UI updates when mobile app changes device states
+    \item \textcolor{required}{\textbf{[REQUIRED]}} Floor-based device grouping and organization
+\end{itemize}
+
+\subsubsection{Technology Options}
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Option 1:} React.js web app with Supabase real-time subscriptions
+    \item \textbf{Option 2:} Next.js dashboard with server-side rendering
+    \item \textbf{Option 3:} Vue.js with Vuex state management
+    \item \textbf{Recommended:} React.js + Tailwind CSS + Supabase client
+\end{itemize}
+
+\subsubsection{Simulator Architecture}
+\begin{verbatim}
+Web Dashboard (Hardware Simulator)
+    |
+    | (Real-time WebSocket)
+    |
+Supabase Database (Cloud)
+    |
+    | (Real-time WebSocket)
+    |
+Mobile App (React Native)
+\end{verbatim}
+
+\textbf{Implementation Steps:}
+\begin{enumerate}
+    \item Create Next.js or React.js web application
+    \item Initialize Supabase client with same project credentials
+    \item Subscribe to real-time changes on \texttt{devices} table
+    \item Build UI components for each device type
+    \item Deploy to Vercel, Netlify, or similar hosting
+\end{enumerate}
+
+
+\newpage
+\section{Project Structure}
+
+\subsection{Directory Organization}
+
+\begin{verbatim}
+smart-home/
+├── app/                          # Expo Router screens
+│   ├── (auth)/                   # Authentication screens
+│   │   ├── login.tsx            # ✓ Login interface
+│   │   └── register.tsx         # ✓ Registration interface
+│   ├── (tabs)/                   # Main tab navigation
+│   │   ├── index.tsx            # ✓ Home dashboard
+│   │   └── explore.tsx          # ✓ Explore/discover view
+│   ├── device/[id].tsx          # ✓ Device detail view
+│   ├── energy/index.tsx         # ✓ Energy dashboard
+│   ├── floor-plan/index.tsx     # ✓ Floor plan editor
+│   ├── floors/index.tsx         # ✓ Floor management
+│   ├── multi-switch/[id].tsx    # ✓ Multi-switch controller
+│   ├── notifications/index.tsx  # ✓ Notification center
+│   ├── outlet/[id].tsx          # ✓ Outlet controller
+│   ├── profile/index.tsx        # ✓ User profile
+│   ├── schedule/[id].tsx        # ✓ Device scheduling
+│   └── security/[id].tsx        # ✓ Security camera view
+├── components/                   # Reusable UI components
+│   ├── ui/                      # UI primitives
+│   ├── DeviceCard.tsx           # ✓ Device card component
+│   ├── FloorCard.tsx            # ✓ Floor card component
+│   ├── StatusBadge.tsx          # ✓ Status indicator
+│   └── SwitchButton.tsx         # ✓ Animated switch
+├── services/                     # Business logic layer
+│   ├── supabase.ts             # ⚠ Placeholder (not connected)
+│   ├── deviceService.ts        # ⚠ Mock implementation
+│   └── scheduleService.ts      # ⚠ Mock implementation
+├── data/                         # Mock data stores
+│   ├── mockData.ts             # ⚠ In-memory device/floor data
+│   └── floorPlanData.ts        # ⚠ In-memory floor plan config
+├── types/                        # TypeScript definitions
+│   └── device.ts               # ✓ Complete type definitions
+├── constants/                    # Theme and configuration
+│   ├── colors.ts               # ✓ Color palette
+│   └── theme.ts                # ✓ Theme configuration
+└── assets/                       # Static resources
+    └── images/                  # App images and icons
+
+Legend:
+✓ = Fully implemented
+⚠ = Implemented but needs backend connection
+✗ = Not implemented
+\end{verbatim}
+
+
+\subsection{Data Flow Architecture}
+
+\subsubsection{Current Architecture (Mock Data)}
+\begin{verbatim}
+UI Components (app/*)
+    ↓
+Service Layer (services/deviceService.ts)
+    ↓
+In-Memory Arrays (data/mockData.ts)
+\end{verbatim}
+
+\textbf{Characteristics:}
+\begin{itemize}
+    \item Data stored in JavaScript arrays (\texttt{DEVICES}, \texttt{FLOORS})
+    \item Changes lost on app restart
+    \item No multi-user support
+    \item No real-time synchronization
+    \item No persistence layer
+\end{itemize}
+
+\subsubsection{Required Architecture (Cloud-Connected)}
+\begin{verbatim}
+UI Components (app/*)
+    ↓
+Service Layer (services/deviceService.ts)
+    ↓
+Supabase Client (services/supabase.ts)
+    ↓ ↑ (Real-time WebSocket)
+Supabase Cloud Database (PostgreSQL)
+    ↓ ↑ (Real-time WebSocket)
+Hardware Simulator Dashboard (Web)
+\end{verbatim}
+
+\textbf{Characteristics:}
+\begin{itemize}
+    \item Data persisted in cloud PostgreSQL database
+    \item Real-time synchronization via WebSockets
+    \item Multi-user support with authentication
+    \item Offline support with eventual consistency
+    \item Hardware simulator receives instant updates
+\end{itemize}
+
+\newpage
+\section{Database Schema Design}
+
+\subsection{Proposed Supabase Tables}
+
+
+\subsubsection{floors Table}
+\begin{verbatim}
+CREATE TABLE floors (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  level INTEGER NOT NULL,
+  device_count INTEGER DEFAULT 0,
+  active_device_count INTEGER DEFAULT 0,
+  floor_plan_url TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+\end{verbatim}
+
+\subsubsection{devices Table}
+\begin{verbatim}
+CREATE TABLE devices (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  floor_id UUID REFERENCES floors(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  type TEXT NOT NULL CHECK (type IN ('light', 'thermostat', 
+    'lock', 'camera', 'fan', 'tv', 'speaker', 'outlet', 
+    'iron', 'multiSwitch')),
+  status TEXT NOT NULL DEFAULT 'off' CHECK (status IN 
+    ('on', 'off', 'error', 'offline')),
+  room_name TEXT,
+  value NUMERIC,
+  unit TEXT,
+  icon_name TEXT,
+  safety_timeout INTEGER,
+  last_updated TIMESTAMPTZ DEFAULT NOW(),
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+\end{verbatim}
+
+\subsubsection{switch\_circuits Table}
+\begin{verbatim}
+CREATE TABLE switch_circuits (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  device_id UUID REFERENCES devices(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'off' CHECK (status IN 
+    ('on', 'off', 'error', 'disconnected')),
+  power NUMERIC,
+  position INTEGER NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+\end{verbatim}
+
+
+\subsubsection{schedules Table}
+\begin{verbatim}
+CREATE TABLE schedules (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  device_id UUID REFERENCES devices(id) ON DELETE CASCADE,
+  type TEXT NOT NULL CHECK (type IN ('time', 'safety')),
+  enabled BOOLEAN DEFAULT true,
+  time TIME,
+  action TEXT CHECK (action IN ('on', 'off')),
+  days INTEGER[],
+  max_duration_minutes INTEGER,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+\end{verbatim}
+
+\subsubsection{floor\_plan\_pins Table}
+\begin{verbatim}
+CREATE TABLE floor_plan_pins (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  floor_id UUID REFERENCES floors(id) ON DELETE CASCADE,
+  device_id UUID REFERENCES devices(id) ON DELETE CASCADE,
+  x NUMERIC NOT NULL,
+  y NUMERIC NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(floor_id, device_id)
+);
+\end{verbatim}
+
+\subsubsection{alerts Table}
+\begin{verbatim}
+CREATE TABLE alerts (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  device_id UUID REFERENCES devices(id) ON DELETE SET NULL,
+  type TEXT NOT NULL CHECK (type IN ('safety', 'error', 
+    'offline', 'info')),
+  title TEXT NOT NULL,
+  message TEXT,
+  read BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+\end{verbatim}
+
+\subsection{Row-Level Security Policies}
+All tables must implement RLS policies to ensure users only access their own data:
+
+\begin{verbatim}
+ALTER TABLE floors ENABLE ROW LEVEL SECURITY;
+ALTER TABLE devices ENABLE ROW LEVEL SECURITY;
+-- ... enable for all tables
+
+CREATE POLICY "Users can view their own floors"
+  ON floors FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert their own floors"
+  ON floors FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+-- ... similar policies for UPDATE and DELETE
+\end{verbatim}
+
+
+\newpage
+\section{Implementation Roadmap}
+
+\subsection{Phase 1: Backend Infrastructure (CRITICAL)}
+\textbf{Priority:} HIGH | \textbf{Status:} \textcolor{required}{NOT STARTED}
+
+\begin{enumerate}[leftmargin=*]
+    \item \textbf{Supabase Project Setup}
+    \begin{itemize}
+        \item Create Supabase project at \url{https://supabase.com}
+        \item Configure authentication providers (email/password)
+        \item Set up database tables using provided SQL schema
+        \item Enable Row-Level Security on all tables
+        \item Configure storage bucket for floor plan images
+    \end{itemize}
+    
+    \item \textbf{Mobile App Integration}
+    \begin{itemize}
+        \item Install Supabase client: \texttt{npx expo install @supabase/supabase-js}
+        \item Configure environment variables in \texttt{.env}:
+        \begin{verbatim}
+EXPO_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
+EXPO_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...
+        \end{verbatim}
+        \item Initialize Supabase client in \texttt{services/supabase.ts}
+        \item Replace mock implementations in \texttt{services/deviceService.ts}
+    \end{itemize}
+    
+    \item \textbf{Authentication Implementation}
+    \begin{itemize}
+        \item Connect login screen to Supabase Auth
+        \item Connect registration screen to Supabase Auth
+        \item Implement session persistence with AsyncStorage
+        \item Add authentication state management
+        \item Implement logout functionality
+    \end{itemize}
+    
+    \item \textbf{CRUD Operations Implementation}
+    \begin{itemize}
+        \item Floors: CREATE, READ, UPDATE, DELETE
+        \item Devices: CREATE, READ, UPDATE, DELETE
+        \item Switch Circuits: CREATE, READ, UPDATE, DELETE
+        \item Schedules: CREATE, READ, UPDATE, DELETE
+        \item Floor Plan Pins: CREATE, READ, UPDATE, DELETE
+    \end{itemize}
+\end{enumerate}
+
+
+\subsection{Phase 2: Real-Time Synchronization (CRITICAL)}
+\textbf{Priority:} HIGH | \textbf{Status:} \textcolor{required}{NOT STARTED}
+
+\begin{enumerate}[leftmargin=*]
+    \item \textbf{Device State Synchronization}
+    \begin{itemize}
+        \item Subscribe to real-time changes on \texttt{devices} table
+        \item Update UI automatically when database changes
+        \item Implement optimistic updates for instant feedback
+        \item Handle connection loss and reconnection
+    \end{itemize}
+    
+    \item \textbf{Floor Management Sync}
+    \begin{itemize}
+        \item Subscribe to real-time changes on \texttt{floors} table
+        \item Auto-update floor list when floors are added/removed
+        \item Sync device counts in real-time
+    \end{itemize}
+    
+    \item \textbf{Multi-Device Synchronization}
+    \begin{itemize}
+        \item Test simultaneous updates from multiple devices
+        \item Implement conflict resolution strategies
+        \item Add version control or timestamps for conflict detection
+    \end{itemize}
+\end{enumerate}
+
+\subsection{Phase 3: Hardware Simulator Dashboard (CRITICAL)}
+\textbf{Priority:} HIGH | \textbf{Status:} \textcolor{required}{NOT STARTED}
+
+\begin{enumerate}[leftmargin=*]
+    \item \textbf{Web Dashboard Setup}
+    \begin{itemize}
+        \item Initialize Next.js or React project
+        \item Install Supabase client
+        \item Configure environment variables with same credentials
+        \item Design simulator UI layout
+    \end{itemize}
+    
+    \item \textbf{Device Visualization Components}
+    \begin{itemize}
+        \item Light bulb indicator (ON/OFF, brightness)
+        \item Switch toggle representations
+        \item Outlet power indicators
+        \item Multi-switch panel visualization
+        \item Camera mock feed placeholders
+        \item Thermostat display
+    \end{itemize}
+    
+    \item \textbf{Real-Time Database Listener}
+    \begin{itemize}
+        \item Subscribe to \texttt{devices} table changes
+        \item Update simulator UI on every device state change
+        \item Group devices by floor for organized display
+        \item Add connection status indicator
+    \end{itemize}
+\end{enumerate}
+
+
+    \item \textbf{Deployment}
+    \begin{itemize}
+        \item Deploy to Vercel, Netlify, or similar platform
+        \item Configure production environment variables
+        \item Test synchronization with mobile app
+        \item Document simulator URL for demonstration
+    \end{itemize}
+\end{enumerate}
+
+\subsection{Phase 4: Safety \& Automation Features}
+\textbf{Priority:} MEDIUM | \textbf{Status:} \textcolor{pending}{PARTIALLY IMPLEMENTED (UI ONLY)}
+
+\begin{enumerate}[leftmargin=*]
+    \item \textbf{Server-Side Safety Enforcement}
+    \begin{itemize}
+        \item Create Supabase Edge Function or cron job
+        \item Monitor device runtime against safety timeouts
+        \item Auto-shutoff devices exceeding \texttt{max\_on\_duration}
+        \item Generate alerts on safety cutoff
+        \item Push notifications to mobile app
+    \end{itemize}
+    
+    \item \textbf{Schedule Execution}
+    \begin{itemize}
+        \item Implement time-based schedule executor
+        \item Check schedules against current time and day
+        \item Trigger device state changes at scheduled times
+        \item Log schedule execution history
+    \end{itemize}
+    
+    \item \textbf{Energy Monitoring}
+    \begin{itemize}
+        \item Track device usage duration
+        \item Calculate estimated energy consumption
+        \item Store historical usage data
+        \item Generate usage reports and visualizations
+    \end{itemize}
+\end{enumerate}
+
+\subsection{Phase 5: Testing \& Documentation}
+\textbf{Priority:} HIGH | \textbf{Status:} \textcolor{required}{NOT STARTED}
+
+\begin{enumerate}[leftmargin=*]
+    \item \textbf{Integration Testing}
+    \begin{itemize}
+        \item Test full CRUD operations for all entities
+        \item Verify real-time sync between mobile and simulator
+        \item Test safety cutoff enforcement
+        \item Validate schedule execution
+        \item Test multi-user scenarios
+    \end{itemize}
+    
+    \item \textbf{Build \& Deployment}
+    \begin{itemize}
+        \item Build Android APK: \texttt{eas build --platform android}
+        \item Test on physical Android devices
+        \item Upload APK to Google Drive or GitHub releases
+        \item Document installation instructions
+    \end{itemize}
+\end{enumerate}
+
+
+    \item \textbf{Video Demonstration}
+    \begin{itemize}
+        \item Record 25-minute demonstration video
+        \item Show all team members with introductions
+        \item Demonstrate mobile app features
+        \item Demonstrate hardware simulator synchronization
+        \item Show real-time updates between app and simulator
+        \item Explain safety cutoff features
+        \item Present technical architecture
+    \end{itemize}
+\end{enumerate}
+
+\newpage
+\section{Technical Requirements Met vs. Remaining}
+
+\subsection{Assignment Criteria Compliance}
+
+\begin{table}[h]
+\centering
+\begin{tabularx}{\textwidth}{|X|c|c|}
+\hline
+\textbf{Requirement} & \textbf{UI Status} & \textbf{Backend Status} \\
+\hline
+Multi-floor interactive dashboard & \textcolor{implemented}{✓} & \textcolor{required}{✗} \\
+\hline
+Floor plan layouts with grid overlay & \textcolor{implemented}{✓} & \textcolor{required}{✗} \\
+\hline
+Device control UI with status display & \textcolor{implemented}{✓} & \textcolor{required}{✗} \\
+\hline
+Electrical outlet control & \textcolor{implemented}{✓} & \textcolor{required}{✗} \\
+\hline
+Multi-switch unit management & \textcolor{implemented}{✓} & \textcolor{required}{✗} \\
+\hline
+Scheduling interface & \textcolor{implemented}{✓} & \textcolor{required}{✗} \\
+\hline
+Safety timeout configuration & \textcolor{implemented}{✓} & \textcolor{required}{✗} \\
+\hline
+Security camera interface & \textcolor{implemented}{✓} & \textcolor{required}{✗} \\
+\hline
+Bidirectional sync (mobile ↔ cloud) & \textcolor{required}{✗} & \textcolor{required}{✗} \\
+\hline
+Server-side safety cutoffs & \textcolor{required}{✗} & \textcolor{required}{✗} \\
+\hline
+Usage reporting dashboard & \textcolor{implemented}{✓} & \textcolor{required}{✗} \\
+\hline
+Hardware simulator dashboard & \textcolor{required}{✗} & \textcolor{required}{✗} \\
+\hline
+Authentication system & \textcolor{implemented}{✓} & \textcolor{required}{✗} \\
+\hline
+\end{tabularx}
+\caption{Implementation status by requirement}
+\end{table}
+
+Legend:
+\begin{itemize}
+    \item \textcolor{implemented}{✓} = Fully implemented
+    \item \textcolor{pending}{◐} = Partially implemented
+    \item \textcolor{required}{✗} = Not implemented
+\end{itemize}
+
+
+\subsection{CRUD Operations Required}
+
+\subsubsection{Fully Implemented CRUD (UI Only)}
+These operations have complete UI workflows but require backend implementation:
+
+\paragraph{Floors}
+\begin{itemize}[leftmargin=*]
+    \item \textbf{CREATE:} Add floor modal with name, level, and floor plan image picker
+    \item \textbf{READ:} Floor list display with statistics and preview images
+    \item \textbf{UPDATE:} Edit floor modal with name/level modification and image replacement
+    \item \textbf{DELETE:} Delete floor with confirmation dialog
+\end{itemize}
+
+\paragraph{Devices}
+\begin{itemize}[leftmargin=*]
+    \item \textbf{CREATE:} Add device modal with type selection, floor assignment, room name
+    \item \textbf{READ:} Device list views (by floor, by type, all devices)
+    \item \textbf{UPDATE:} Toggle device status, adjust brightness/temperature/speed
+    \item \textbf{DELETE:} Remove device from system
+\end{itemize}
+
+\paragraph{Multi-Switch Circuits}
+\begin{itemize}[leftmargin=*]
+    \item \textbf{CREATE:} Add switch circuit to gang-box unit
+    \item \textbf{READ:} View all circuits in a multi-switch device
+    \item \textbf{UPDATE:} Toggle individual switch circuits, modify circuit names
+    \item \textbf{DELETE:} Remove circuit from multi-switch unit
+\end{itemize}
+
+\paragraph{Schedules}
+\begin{itemize}[leftmargin=*]
+    \item \textbf{CREATE:} Schedule creation with time, days, and action selection
+    \item \textbf{READ:} View all schedules for a device
+    \item \textbf{UPDATE:} Enable/disable schedules, modify schedule parameters
+    \item \textbf{DELETE:} Remove schedule from device
+\end{itemize}
+
+\paragraph{Floor Plan Pins}
+\begin{itemize}[leftmargin=*]
+    \item \textbf{CREATE:} Drag device onto floor plan to create pin
+    \item \textbf{READ:} Display device pins on floor plan
+    \item \textbf{UPDATE:} Drag pin to new position
+    \item \textbf{DELETE:} Remove device from floor plan
+\end{itemize}
+
+
+\newpage
+\section{Code Examples}
+
+\subsection{Current Mock Implementation}
+
+\textbf{File:} \texttt{services/deviceService.ts}
+
+\begin{verbatim}
+// Current implementation using in-memory arrays
+export async function toggleDevice(id: string): 
+    Promise<Device | undefined> {
+  const device = DEVICES.find((d) => d.id === id);
+  if (!device) return undefined;
+
+  if (device.status === 'on') {
+    device.status = 'off';
+  } else if (device.status === 'off') {
+    device.status = 'on';
+  }
+  device.lastUpdated = new Date().toISOString();
+  return Promise.resolve({ ...device });
+}
+\end{verbatim}
+
+\textbf{Problem:} Changes exist only in memory, not persisted to database.
+
+\subsection{Required Supabase Implementation}
+
+\textbf{Step 1: Initialize Supabase Client}
+
+\textbf{File:} \texttt{services/supabase.ts}
+
+\begin{verbatim}
+import { createClient } from '@supabase/supabase-js';
+import Constants from 'expo-constants';
+
+const supabaseUrl = Constants.expoConfig?.extra
+  ?.EXPO_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = Constants.expoConfig?.extra
+  ?.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+
+export const supabase = createClient(
+  supabaseUrl, 
+  supabaseAnonKey
+);
+\end{verbatim}
+
+\textbf{Step 2: Replace Mock CRUD Operations}
+
+\textbf{File:} \texttt{services/deviceService.ts}
+
+\begin{verbatim}
+import { supabase } from './supabase';
+
+// Replace mock implementation with real database operations
+export async function toggleDevice(id: string): 
+    Promise<Device | undefined> {
+  // Fetch current device state
+  const { data: device, error: fetchError } = 
+    await supabase
+      .from('devices')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+  if (fetchError || !device) return undefined;
+
+  // Toggle status
+  const newStatus = device.status === 'on' ? 'off' : 'on';
+
+  // Update in database
+  const { data: updated, error: updateError } = 
+    await supabase
+      .from('devices')
+      .update({ 
+        status: newStatus, 
+        last_updated: new Date().toISOString() 
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+  if (updateError) throw updateError;
+  return updated;
+}
+\end{verbatim}
+
+
+\textbf{Step 3: Add Real-Time Synchronization}
+
+\textbf{File:} \texttt{app/(tabs)/index.tsx}
+
+\begin{verbatim}
+import { useEffect, useState } from 'react';
+import { supabase } from '@/services/supabase';
+
+function HomeScreen() {
+  const [devices, setDevices] = useState<Device[]>([]);
+
+  useEffect(() => {
+    // Initial data fetch
+    fetchDevices();
+
+    // Subscribe to real-time changes
+    const subscription = supabase
+      .channel('devices-channel')
+      .on('postgres_changes', 
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'devices' 
+        },
+        (payload) => {
+          console.log('Device changed:', payload);
+          // Refresh device list on any change
+          fetchDevices();
+        }
+      )
+      .subscribe();
+
+    // Cleanup subscription
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  async function fetchDevices() {
+    const { data, error } = await supabase
+      .from('devices')
+      .select('*')
+      .order('last_updated', { ascending: false });
+    
+    if (!error && data) {
+      setDevices(data);
+    }
+  }
+
+  return (
+    // ... UI components
+  );
+}
+\end{verbatim}
+
+\subsection{Hardware Simulator Example}
+
+\textbf{Technology:} React.js + Supabase + Tailwind CSS
+
+\textbf{File:} \texttt{simulator/src/DeviceSimulator.jsx}
+
+\begin{verbatim}
+import { useEffect, useState } from 'react';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.REACT_APP_SUPABASE_URL,
+  process.env.REACT_APP_SUPABASE_ANON_KEY
+);
+
+function DeviceSimulator() {
+  const [devices, setDevices] = useState([]);
+
+  useEffect(() => {
+    // Fetch initial devices
+    fetchDevices();
+
+    // Listen to real-time changes
+    const subscription = supabase
+      .channel('simulator-channel')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'devices'
+      }, (payload) => {
+        console.log('Device update:', payload);
+        fetchDevices(); // Refresh display
+      })
+      .subscribe();
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  async function fetchDevices() {
+    const { data } = await supabase
+      .from('devices')
+      .select('*');
+    setDevices(data || []);
+  }
+
+  return (
+    <div className="p-8">
+      <h1 className="text-3xl font-bold mb-6">
+        Hardware Simulator
+      </h1>
+      <div className="grid grid-cols-4 gap-4">
+        {devices.map(device => (
+          <DeviceCard key={device.id} device={device} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function DeviceCard({ device }) {
+  const isOn = device.status === 'on';
+  
+  return (
+    <div className={`p-4 rounded-lg border-2 ${
+      isOn ? 'bg-green-100 border-green-500' 
+           : 'bg-gray-100 border-gray-300'
+    }`}>
+      <div className="flex items-center gap-2">
+        <div className={`w-4 h-4 rounded-full ${
+          isOn ? 'bg-green-500' : 'bg-gray-400'
+        }`} />
+        <span className="font-semibold">{device.name}</span>
+      </div>
+      <p className="text-sm text-gray-600 mt-2">
+        {device.room_name}
+      </p>
+      <p className="text-xs text-gray-500 mt-1">
+        Status: {device.status.toUpperCase()}
+      </p>
+    </div>
+  );
+}
+
+export default DeviceSimulator;
+\end{verbatim}
+
+
+\newpage
+\section{Deployment Instructions}
+
+\subsection{Mobile App Deployment}
+
+\subsubsection{Prerequisites}
+\begin{itemize}[leftmargin=*]
+    \item Expo account at \url{https://expo.dev}
+    \item EAS CLI installed: \texttt{npm install -g eas-cli}
+    \item Configured \texttt{app.json} with app identifiers
+\end{itemize}
+
+\subsubsection{Build Android APK}
+\begin{verbatim}
+# Login to Expo
+eas login
+
+# Configure EAS build
+eas build:configure
+
+# Build Android APK
+eas build --platform android --profile preview
+
+# Download APK from Expo dashboard
+# Upload to Google Drive or GitHub releases
+\end{verbatim}
+
+\subsubsection{Environment Variables}
+Create \texttt{.env} file in project root:
+\begin{verbatim}
+EXPO_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
+EXPO_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6...
+\end{verbatim}
+
+\subsection{Hardware Simulator Deployment}
+
+\subsubsection{Vercel Deployment}
+\begin{verbatim}
+# Navigate to simulator directory
+cd hardware-simulator
+
+# Install Vercel CLI
+npm install -g vercel
+
+# Deploy to Vercel
+vercel
+
+# Set environment variables in Vercel dashboard
+# REACT_APP_SUPABASE_URL
+# REACT_APP_SUPABASE_ANON_KEY
+
+# Production deployment
+vercel --prod
+\end{verbatim}
+
+\subsubsection{Alternative: Netlify Deployment}
+\begin{verbatim}
+# Build the simulator
+npm run build
+
+# Deploy to Netlify
+# Drag and drop 'build' folder to netlify.com/drop
+
+# Or use Netlify CLI
+npm install -g netlify-cli
+netlify deploy --prod --dir=build
+\end{verbatim}
+
+
+\newpage
+\section{Testing Strategy}
+
+\subsection{Integration Testing Checklist}
+
+\subsubsection{Authentication Tests}
+\begin{itemize}[leftmargin=*]
+    \item[$\square$] User registration with email/password
+    \item[$\square$] User login with valid credentials
+    \item[$\square$] Login failure with invalid credentials
+    \item[$\square$] Session persistence across app restarts
+    \item[$\square$] Logout functionality
+    \item[$\square$] Protected routes redirect to login when not authenticated
+\end{itemize}
+
+\subsubsection{Floor Management Tests}
+\begin{itemize}[leftmargin=*]
+    \item[$\square$] Create new floor with name and level
+    \item[$\square$] Upload floor plan image
+    \item[$\square$] View all floors for authenticated user
+    \item[$\square$] Update floor name and level
+    \item[$\square$] Delete floor (with cascade delete of devices)
+    \item[$\square$] Floor statistics update automatically
+\end{itemize}
+
+\subsubsection{Device Management Tests}
+\begin{itemize}[leftmargin=*]
+    \item[$\square$] Create device with floor assignment
+    \item[$\square$] Toggle device status (ON/OFF)
+    \item[$\square$] Update device properties (brightness, temperature, etc.)
+    \item[$\square$] Delete device
+    \item[$\square$] View devices filtered by floor
+    \item[$\square$] Device status badges display correctly
+\end{itemize}
+
+\subsubsection{Multi-Switch Tests}
+\begin{itemize}[leftmargin=*]
+    \item[$\square$] Create multi-switch device with multiple circuits
+    \item[$\square$] Toggle individual switch circuits
+    \item[$\square$] Update circuit names
+    \item[$\square$] View all circuits in a multi-switch unit
+    \item[$\square$] Delete individual circuits
+\end{itemize}
+
+\subsubsection{Real-Time Synchronization Tests}
+\begin{itemize}[leftmargin=*]
+    \item[$\square$] Device state change in mobile app reflects in simulator
+    \item[$\square$] Device state change in simulator reflects in mobile app
+    \item[$\square$] Multiple mobile devices stay synchronized
+    \item[$\square$] Updates occur within 1-2 seconds
+    \item[$\square$] Connection loss handling and reconnection
+\end{itemize}
+
+\subsubsection{Safety Features Tests}
+\begin{itemize}[leftmargin=*]
+    \item[$\square$] Configure safety timeout for fire-hazard device
+    \item[$\square$] Device auto-shutoff after timeout duration
+    \item[$\square$] Alert generated on safety cutoff
+    \item[$\square$] Push notification sent to mobile app
+\end{itemize}
+
+\subsubsection{Schedule Tests}
+\begin{itemize}[leftmargin=*]
+    \item[$\square$] Create time-based schedule
+    \item[$\square$] Schedule executes at correct time
+    \item[$\square$] Enable/disable schedule toggle
+    \item[$\square$] Delete schedule
+    \item[$\square$] Multiple schedules on single device
+\end{itemize}
+
+
+\subsection{User Acceptance Testing Scenarios}
+
+\subsubsection{Scenario 1: Complete Floor Setup}
+\begin{enumerate}
+    \item User logs into the app
+    \item User creates a new floor "Ground Floor"
+    \item User uploads floor plan image
+    \item User adds 5 devices to the floor
+    \item User places devices on floor plan
+    \item User verifies floor statistics show 5 devices
+    \item \textbf{Expected:} All operations persist and sync to simulator
+\end{enumerate}
+
+\subsubsection{Scenario 2: Device Control Flow}
+\begin{enumerate}
+    \item User navigates to device list
+    \item User toggles a light device ON
+    \item Simulator displays light as ON within 2 seconds
+    \item User adjusts brightness to 75\%
+    \item Simulator reflects brightness change
+    \item User toggles light OFF
+    \item Simulator displays light as OFF
+    \item \textbf{Expected:} All changes synchronized instantly
+\end{enumerate}
+
+\subsubsection{Scenario 3: Multi-Switch Control}
+\begin{enumerate}
+    \item User opens a 3-switch panel device
+    \item User toggles Switch 1 ON
+    \item Simulator shows Switch 1 active
+    \item User toggles Switch 2 ON
+    \item Simulator shows Switch 2 active
+    \item User toggles Switch 1 OFF
+    \item Simulator shows Switch 1 inactive, Switch 2 still active
+    \item \textbf{Expected:} Individual circuit states tracked correctly
+\end{enumerate}
+
+\subsubsection{Scenario 4: Safety Timeout}
+\begin{enumerate}
+    \item User opens iron device settings
+    \item User sets safety timeout to 2 minutes
+    \item User turns iron ON
+    \item User waits 2 minutes
+    \item System automatically turns iron OFF
+    \item User receives safety alert notification
+    \item Simulator reflects iron OFF state
+    \item \textbf{Expected:} Automatic cutoff enforced by backend
+\end{enumerate}
+
+\subsubsection{Scenario 5: Scheduling}
+\begin{enumerate}
+    \item User creates schedule for bedroom light
+    \item User sets time to 6:00 PM
+    \item User sets action to "Turn ON"
+    \item User sets days: Monday-Friday
+    \item At 6:00 PM on Monday, light turns ON automatically
+    \item User verifies light is ON in app and simulator
+    \item \textbf{Expected:} Schedule executes at correct time
+\end{enumerate}
+
+
+\newpage
+\section{Known Limitations \& Future Enhancements}
+
+\subsection{Current Limitations}
+
+\begin{enumerate}[leftmargin=*]
+    \item \textbf{No Backend Integration}
+    \begin{itemize}
+        \item All data stored in memory, lost on app restart
+        \item No persistence layer implemented
+        \item No multi-user support
+    \end{itemize}
+    
+    \item \textbf{No Real-Time Synchronization}
+    \begin{itemize}
+        \item Changes not reflected across devices
+        \item No hardware simulator integration
+        \item Manual refresh required for updates
+    \end{itemize}
+    
+    \item \textbf{No Safety Enforcement}
+    \begin{itemize}
+        \item Safety timeouts not enforced by backend
+        \item No automatic device cutoff
+        \item No alert generation system
+    \end{itemize}
+    
+    \item \textbf{No Schedule Execution}
+    \begin{itemize}
+        \item Schedules are UI-only configurations
+        \item No background job to execute schedules
+        \item No time-based automation
+    \end{itemize}
+    
+    \item \textbf{Mock Energy Data}
+    \begin{itemize}
+        \item Usage statistics are placeholder data
+        \item No actual energy consumption tracking
+        \item No historical data collection
+    \end{itemize}
+    
+    \item \textbf{No Hardware Simulator}
+    \begin{itemize}
+        \item Simulator dashboard not implemented
+        \item No visual representation of physical devices
+        \item Cannot demonstrate IoT synchronization
+    \end{itemize}
+\end{enumerate}
+
+\subsection{Planned Enhancements}
+
+\begin{enumerate}[leftmargin=*]
+    \item \textbf{Voice Control Integration}
+    \begin{itemize}
+        \item Alexa/Google Assistant integration
+        \item Voice commands for device control
+        \item Natural language processing
+    \end{itemize}
+    
+    \item \textbf{Advanced Analytics}
+    \begin{itemize}
+        \item Machine learning for usage prediction
+        \item Energy optimization recommendations
+        \item Cost analysis and budgeting
+    \end{itemize}
+    
+    \item \textbf{Geofencing Automation}
+    \begin{itemize}
+        \item Location-based device triggers
+        \item Auto-off when leaving home
+        \item Welcome home scenarios
+    \end{itemize}
+    
+    \item \textbf{Third-Party Integrations}
+    \begin{itemize}
+        \item IFTTT integration
+        \item Smart home hub compatibility
+        \item Weather-based automation
+    \end{itemize}
+    
+    \item \textbf{Enhanced Security}
+    \begin{itemize}
+        \item Two-factor authentication
+        \item Biometric authentication
+        \item Device access logs
+        \item Role-based permissions
+    \end{itemize}
+\end{enumerate}
+
+
+\newpage
+\section{Deliverables Summary}
+
+\subsection{Completed Deliverables}
+
+\begin{enumerate}[leftmargin=*]
+    \item \textcolor{implemented}{\textbf{Mobile Application Frontend}}
+    \begin{itemize}
+        \item Complete UI/UX implementation
+        \item All required screens and navigation
+        \item Responsive layouts and animations
+        \item Accessibility compliance
+        \item Custom design system
+    \end{itemize}
+    
+    \item \textcolor{implemented}{\textbf{Device Type Support}}
+    \begin{itemize}
+        \item 10 device types with specialized interfaces
+        \item Status indicators and controls
+        \item Multi-switch panel support
+        \item Safety-critical device handling
+    \end{itemize}
+    
+    \item \textcolor{implemented}{\textbf{Floor Management System}}
+    \begin{itemize}
+        \item Multi-floor support with levels
+        \item Floor plan image upload
+        \item Device pin placement on floor plans
+        \item Floor statistics and monitoring
+    \end{itemize}
+    
+    \item \textcolor{implemented}{\textbf{Scheduling Interface}}
+    \begin{itemize}
+        \item Time-based schedule creation
+        \item Safety timeout configuration
+        \item Day-of-week selection
+        \item Schedule enable/disable controls
+    \end{itemize}
+    
+    \item \textcolor{implemented}{\textbf{Technical Documentation}}
+    \begin{itemize}
+        \item Comprehensive LaTeX documentation
+        \item Architecture diagrams
+        \item Database schema design
+        \item Implementation roadmap
+    \end{itemize}
+\end{enumerate}
+
+\subsection{Required Deliverables (Not Yet Completed)}
+
+\begin{enumerate}[leftmargin=*]
+    \item \textcolor{required}{\textbf{Backend Infrastructure}}
+    \begin{itemize}
+        \item Supabase database setup
+        \item Authentication system
+        \item CRUD operations implementation
+        \item Row-level security policies
+    \end{itemize}
+    
+    \item \textcolor{required}{\textbf{Real-Time Synchronization}}
+    \begin{itemize}
+        \item WebSocket connections
+        \item Bidirectional state sync
+        \item Conflict resolution
+        \item Offline support
+    \end{itemize}
+    
+    \item \textcolor{required}{\textbf{Hardware Simulator Dashboard}}
+    \begin{itemize}
+        \item Web-based simulator interface
+        \item Real-time device visualization
+        \item Database listener implementation
+        \item Deployment to hosting platform
+    \end{itemize}
+    
+    \item \textcolor{required}{\textbf{Safety \& Automation Backend}}
+    \begin{itemize}
+        \item Server-side safety cutoff enforcement
+        \item Schedule execution worker
+        \item Alert generation system
+        \item Push notification integration
+    \end{itemize}
+    
+    \item \textcolor{required}{\textbf{Android APK Build}}
+    \begin{itemize}
+        \item Production build with EAS
+        \item APK distribution link
+        \item Installation instructions
+    \end{itemize}
+    
+    \item \textcolor{required}{\textbf{Demonstration Video}}
+    \begin{itemize}
+        \item 25-minute recorded demonstration
+        \item All team members present
+        \item Feature walkthrough
+        \item Simulator synchronization demo
+        \item Technical architecture explanation
+    \end{itemize}
+\end{enumerate}
+
+
+\newpage
+\section{Quick Start Guide}
+
+\subsection{For Developers Continuing This Project}
+
+\subsubsection{Step 1: Environment Setup}
+\begin{verbatim}
+# Clone repository
+git clone <repository-url>
+cd smart-home
+
+# Install dependencies
+npm install
+
+# Create environment file
+cp .env.example .env
+# Edit .env with your Supabase credentials
+\end{verbatim}
+
+\subsubsection{Step 2: Supabase Configuration}
+\begin{enumerate}
+    \item Create account at \url{https://supabase.com}
+    \item Create new project
+    \item Copy project URL and anon key
+    \item Add to \texttt{.env} file
+    \item Run SQL schema from Section 4 in Supabase SQL Editor
+    \item Enable Real-time on all tables
+\end{enumerate}
+
+\subsubsection{Step 3: Replace Mock Services}
+\begin{verbatim}
+# Priority order for replacement:
+1. services/supabase.ts - Initialize client
+2. services/deviceService.ts - Replace CRUD operations
+3. services/scheduleService.ts - Replace schedule operations
+4. Add real-time subscriptions to all screens
+\end{verbatim}
+
+\subsubsection{Step 4: Build Hardware Simulator}
+\begin{verbatim}
+# Create new React project
+npx create-react-app hardware-simulator
+cd hardware-simulator
+
+# Install Supabase
+npm install @supabase/supabase-js
+
+# Create simulator components (see Section 6.3)
+# Deploy to Vercel or Netlify
+\end{verbatim}
+
+\subsubsection{Step 5: Testing}
+\begin{verbatim}
+# Start mobile app
+npm start
+
+# Test on Android device
+npm run android
+
+# Verify synchronization with simulator
+# Open simulator URL in browser
+# Toggle device in mobile app
+# Verify change reflects in simulator within 2 seconds
+\end{verbatim}
+
+\subsubsection{Step 6: Build APK}
+\begin{verbatim}
+# Install EAS CLI
+npm install -g eas-cli
+
+# Login
+eas login
+
+# Configure
+eas build:configure
+
+# Build
+eas build --platform android --profile preview
+
+# Download APK from Expo dashboard
+\end{verbatim}
+
+
+\subsection{Time Estimates for Remaining Work}
+
+\begin{table}[h]
+\centering
+\begin{tabularx}{\textwidth}{|X|c|c|}
+\hline
+\textbf{Task} & \textbf{Estimated Hours} & \textbf{Priority} \\
+\hline
+Supabase setup \& schema creation & 2-3 hours & Critical \\
+\hline
+Replace mock services with Supabase & 6-8 hours & Critical \\
+\hline
+Implement real-time subscriptions & 4-5 hours & Critical \\
+\hline
+Build hardware simulator dashboard & 8-10 hours & Critical \\
+\hline
+Deploy simulator to hosting & 1-2 hours & Critical \\
+\hline
+Safety cutoff backend implementation & 4-6 hours & High \\
+\hline
+Schedule execution worker & 3-4 hours & High \\
+\hline
+Push notification setup & 2-3 hours & Medium \\
+\hline
+Integration testing & 4-6 hours & High \\
+\hline
+APK build \& deployment & 2-3 hours & Critical \\
+\hline
+Video demonstration recording & 3-4 hours & Critical \\
+\hline
+\textbf{Total Estimated Time} & \textbf{39-54 hours} & \\
+\hline
+\end{tabularx}
+\caption{Time estimates for completing remaining tasks}
+\end{table}
+
+\textbf{Recommended Team Distribution (3 members):}
+\begin{itemize}
+    \item \textbf{Member 1:} Backend infrastructure (Supabase, CRUD, authentication)
+    \item \textbf{Member 2:} Real-time sync \& safety features (WebSockets, cutoffs, schedules)
+    \item \textbf{Member 3:} Hardware simulator \& deployment (Web dashboard, hosting)
+\end{itemize}
+
+\textbf{Critical Path:}
+\begin{enumerate}
+    \item Supabase setup (Member 1) - \textbf{BLOCKING}
+    \item CRUD implementation (Member 1) - \textbf{BLOCKING}
+    \item Real-time sync (Member 2) - Depends on \#2
+    \item Hardware simulator (Member 3) - Depends on \#2
+    \item Testing \& video (All members) - Depends on all above
+\end{enumerate}
+
+
+\newpage
+\section{Conclusion}
+
+\subsection{Project Status Summary}
+
+This Smart Home Monitoring \& Control System represents a comprehensive mobile application with a \textbf{complete frontend implementation}. All UI/UX components, navigation flows, and user interactions have been fully developed using React Native and Expo, adhering to modern mobile design principles.
+
+\subsubsection{Achievements}
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Complete UI Implementation:} All 20+ screens fully designed and functional
+    \item \textbf{Device Type Coverage:} 10 distinct device types with specialized interfaces
+    \item \textbf{Floor Management:} Multi-floor system with plan visualization
+    \item \textbf{Professional Design:} Custom glassmorphism design system
+    \item \textbf{Feature-Rich Interface:} Scheduling, energy monitoring, notifications
+    \item \textbf{Scalable Architecture:} Service layer ready for backend integration
+\end{itemize}
+
+\subsubsection{Critical Next Steps}
+The project is \textbf{frontend-complete} but requires \textbf{backend implementation} to meet all assignment requirements:
+
+\begin{enumerate}
+    \item \textbf{Database Integration:} Connect Supabase for data persistence
+    \item \textbf{Real-Time Sync:} Implement WebSocket-based synchronization
+    \item \textbf{Hardware Simulator:} Build web dashboard to visualize IoT devices
+    \item \textbf{Safety Backend:} Server-side enforcement of safety cutoffs
+    \item \textbf{Schedule Execution:} Background workers for automation
+\end{enumerate}
+
+\subsection{Assessment Readiness}
+
+\begin{table}[h]
+\centering
+\begin{tabularx}{\textwidth}{|X|c|}
+\hline
+\textbf{Assessment Criteria} & \textbf{Status} \\
+\hline
+Source Code \& Git Repository & \textcolor{implemented}{✓ Ready} \\
+\hline
+Mobile App Functionality (UI) & \textcolor{implemented}{✓ Complete} \\
+\hline
+Backend CRUD Operations & \textcolor{required}{✗ Required} \\
+\hline
+Real-Time Synchronization & \textcolor{required}{✗ Required} \\
+\hline
+Hardware Simulator Dashboard & \textcolor{required}{✗ Required} \\
+\hline
+Technical Documentation & \textcolor{implemented}{✓ Complete} \\
+\hline
+Android APK Build & \textcolor{pending}{◐ Pending Backend} \\
+\hline
+Demonstration Video & \textcolor{pending}{◐ Pending Completion} \\
+\hline
+\end{tabularx}
+\caption{Assessment readiness checklist}
+\end{table}
+
+\subsection{Final Recommendations}
+
+\begin{enumerate}
+    \item \textbf{Prioritize backend implementation immediately} - This is the critical blocker
+    \item \textbf{Follow the implementation roadmap} in Section 5 sequentially
+    \item \textbf{Use provided code examples} in Section 6 as templates
+    \item \textbf{Test real-time sync thoroughly} - This is a key assessment criterion
+    \item \textbf{Deploy simulator early} to ensure synchronization works
+    \item \textbf{Record video after all features working} to demonstrate full system
+\end{enumerate}
+
+The frontend quality is \textbf{production-ready}. Completing the backend implementation will transform this into a \textbf{fully functional IoT smart home system} that exceeds assignment requirements.
+
+\end{document}
