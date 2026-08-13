@@ -1,39 +1,27 @@
 import { AppSplashScreen } from '@/components/AppSplashScreen';
+import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import 'react-native-reanimated';
 
 export const unstable_settings = {
   anchor: '(auth)',
 };
 
-export default function RootLayout() {
+function RootNavigator() {
+  const { user, isLoading } = useAuth();
   // Controls whether we show our custom in-app splash screen
-  const [showSplash, setShowSplash] = useState(true);
+  const [splashDone, setSplashDone] = useState(false);
 
-  useEffect(() => {
-    async function prepare() {
-      try {
-        // Simulate loading resources (fonts, initial data, etc.)
-        // Replace / extend this with real async work as needed
-        await new Promise<void>((resolve) => setTimeout(resolve, 5000));
-      } catch (e) {
-        console.warn('Splash screen prepare error:', e);
-      } finally {
-        // Custom splash will handle the transition
-        setShowSplash(false);
-      }
-    }
-
-    prepare();
-  }, []);
-
-  if (showSplash) {
+  // Hold the splash until its animation finishes AND the auth session has
+  // been restored from AsyncStorage, so we never flash the login screen for
+  // an already-authenticated user.
+  if (!splashDone || isLoading) {
     return (
       <>
         <StatusBar style="light" />
-        <AppSplashScreen onAnimationComplete={() => setShowSplash(false)} />
+        <AppSplashScreen onAnimationComplete={() => setSplashDone(true)} />
       </>
     );
   }
@@ -41,17 +29,27 @@ export default function RootLayout() {
   return (
     <>
       <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
+        <Stack.Protected guard={!!user}>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false, animation: 'fade' }} />
+          <Stack.Screen name="device/[id]" options={{ headerShown: false }} />
+          <Stack.Screen name="multi-switch/[id]" options={{ headerShown: false }} />
+          <Stack.Screen name="floor-plan/index" options={{ headerShown: false, animation: 'slide_from_bottom' }} />
+          <Stack.Screen name="floors/index" options={{ headerShown: false, animation: 'fade' }} />
+          <Stack.Screen name="security/index" options={{ headerShown: false, animation: 'slide_from_right' }} />
+          <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+        </Stack.Protected>
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-        <Stack.Screen name="(tabs)" options={{ headerShown: false, animation: 'fade' }} />
-        <Stack.Screen name="device/[id]" options={{ headerShown: false }} />
-        <Stack.Screen name="multi-switch/[id]" options={{ headerShown: false }} />
-        <Stack.Screen name="floor-plan/index" options={{ headerShown: false, animation: 'slide_from_bottom' }} />
-        <Stack.Screen name="floors/index" options={{ headerShown: false, animation: 'fade' }} />
-        <Stack.Screen name="security/index" options={{ headerShown: false, animation: 'slide_from_right' }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
       </Stack>
       <StatusBar style="light" />
     </>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <AuthProvider>
+      <RootNavigator />
+    </AuthProvider>
   );
 }
