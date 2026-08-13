@@ -34,6 +34,12 @@ export interface FloorPlanConfig {
 
 // ─── Mutable floor plan configs ───────────────────────────────────────────────
 
+/**
+ * Bundled default floor plan image used when a floor has no custom image.
+ * No backend/Storage involved — new floors just render this asset.
+ */
+export const DEFAULT_FLOOR_PLAN_IMAGE = require('@/assets/images/floor_plan_preview.png');
+
 export let FLOOR_PLAN_CONFIGS: FloorPlanConfig[] = [
   {
     floorId: 'f0',
@@ -85,7 +91,17 @@ export function setFLOOR_PLAN_CONFIGS(next: FloorPlanConfig[]) {
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 export function getFloorPlanConfig(floorId: string): FloorPlanConfig | undefined {
-  return FLOOR_PLAN_CONFIGS.find((c) => c.floorId === floorId);
+  const existing = FLOOR_PLAN_CONFIGS.find((c) => c.floorId === floorId);
+  // Always resolve to a valid image: keep a custom image if present, otherwise
+  // fall back to the bundled default so the canvas renders for every floor
+  // (including newly created ones) with no upload/Storage required.
+  return {
+    floorId,
+    image: existing?.image ?? DEFAULT_FLOOR_PLAN_IMAGE,
+    canvasWidth: existing?.canvasWidth ?? 360,
+    canvasHeight: existing?.canvasHeight ?? 432,
+    pins: existing?.pins ?? [],
+  };
 }
 
 /**

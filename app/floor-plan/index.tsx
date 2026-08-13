@@ -872,7 +872,7 @@ export default function FloorPlanScreen() {
             devices={floorDevices}
             onPress={handlePinPress}
             onPlacePin={(device) => setPlacingDevice(device)}
-            floorHasPlan={!!(FLOOR_PLAN_CONFIGS.find(c => c.floorId === selectedFloor)?.image)}
+            floorHasPlan={!!getFloorPlanConfig(selectedFloor)?.image}
           />
         )}
 
