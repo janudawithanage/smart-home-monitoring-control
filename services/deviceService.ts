@@ -1,24 +1,116 @@
 /**
  * deviceService
  *
- * Provides CRUD-like helpers for devices and floors.
- * Currently backed by in-memory mock data; swap out the implementations
- * to call Supabase (or any REST API) without changing the callers.
+ * CRUD helpers for devices and floors, backed by Supabase.
+ * Function names and signatures are unchanged so UI callers need no edits.
  */
 
-import { removeDevicePin, setDevicePin, setFloorPlanImage } from '@/data/floorPlanData';
-import { DEVICES, FLOORS, setDEVICES, setFLOORS } from '@/data/mockData';
+import { supabase } from './supabase';
 import { Device, DeviceStatus, Floor } from '@/types/device';
+
+// ─── Row → domain mappers (snake_case DB columns → camelCase types) ──────────
+
+interface DeviceRow {
+  id: string;
+  user_id: string;
+  floor_id: string;
+  name: string;
+  type: Device['type'];
+  status: DeviceStatus;
+  room_name: string | null;
+  value: number | null;
+  unit: string | null;
+  icon_name: string | null;
+  safety_timeout: number | null;
+  last_updated: string;
+  created_at: string;
+}
+
+interface FloorRow {
+  id: string;
+  user_id: string;
+  name: string;
+  level: number;
+  device_count: number;
+  active_device_count: number;
+  floor_plan_url: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+function mapDevice(row: DeviceRow): Device {
+  return {
+    id: row.id,
+    name: row.name,
+    type: row.type,
+    status: row.status,
+    floorId: row.floor_id,
+    roomName: row.room_name ?? '',
+    value: row.value ?? undefined,
+    unit: row.unit ?? undefined,
+    iconName: row.icon_name ?? undefined,
+    safetyTimeout: row.safety_timeout ?? undefined,
+    lastUpdated: row.last_updated,
+  };
+}
+
+function mapFloor(row: FloorRow): Floor {
+  return {
+    id: row.id,
+    name: row.name,
+    level: row.level,
+    deviceCount: row.device_count,
+    activeDeviceCount: row.active_device_count,
+    floorPlanUri: row.floor_plan_url ?? undefined,
+  };
+}
+
+async function getUserId(): Promise<string | null> {
+  const { data } = await supabase.auth.getSession();
+  return data.session?.user?.id ?? null;
+}
 
 // ─── Floors ──────────────────────────────────────────────────────────────────
 
 export async function getFloors(): Promise<Floor[]> {
-  // TODO: replace with Supabase call
-  return Promise.resolve(FLOORS);
+  try {
+    const [{ data: floorRows, error: floorsError }, { data: deviceRows, error: devicesError }] =
+      await Promise.all([
+        supabase.from('floors').select('*').order('level', { ascending: true }),
+        supabase.from('devices').select('floor_id, status'),
+      ]);
+
+    if (floorsError) throw floorsError;
+    if (devicesError) throw devicesError;
+
+    // Compute live counts so cards never show a stale 0 after inserts.
+    const counts = new Map<string, { total: number; active: number }>();
+    for (const d of deviceRows ?? []) {
+      const cur = counts.get(d.floor_id) ?? { total: 0, active: 0 };
+      cur.total += 1;
+      if (d.status === 'on') cur.active += 1;
+      counts.set(d.floor_id, cur);
+    }
+
+    return (floorRows ?? []).map((row) => {
+      const c = counts.get(row.id) ?? { total: 0, active: 0 };
+      return { ...mapFloor(row as FloorRow), deviceCount: c.total, activeDeviceCount: c.active };
+    });
+  } catch (error) {
+    console.error('getFloors failed:', error);
+    return [];
+  }
 }
 
 export async function getFloorById(id: string): Promise<Floor | undefined> {
-  return Promise.resolve(FLOORS.find((f) => f.id === id));
+  try {
+    const { data, error } = await supabase.from('floors').select('*').eq('id', id).maybeSingle();
+    if (error) throw error;
+    return data ? mapFloor(data as FloorRow) : undefined;
+  } catch (error) {
+    console.error('getFloorById failed:', error);
+    return undefined;
+  }
 }
 
 export async function addFloor(
@@ -26,54 +118,93 @@ export async function addFloor(
   level: number,
   floorPlanUri?: string,
 ): Promise<Floor> {
-  const newFloor: Floor = {
-    id: `f${Date.now()}`,
-    name,
-    level,
-    deviceCount: 0,
-    activeDeviceCount: 0,
-    floorPlanUri,
-  };
-  setFLOORS([...FLOORS, newFloor]);
-  // If a floor plan image was provided, register it in the config store
-  if (floorPlanUri) {
-    setFloorPlanImage(newFloor.id, floorPlanUri);
-  }
-  return Promise.resolve({ ...newFloor });
+  const userId = await getUserId();
+  if (!userId) throw new Error('Not authenticated');
+
+  const { data, error } = await supabase
+    .from('floors')
+    .insert({ user_id: userId, name, level, floor_plan_url: floorPlanUri ?? null })
+    .select()
+    .single();
+  if (error) throw new Error(error.message);
+  return mapFloor(data as FloorRow);
 }
 
 export async function updateFloor(
   id: string,
   patch: Partial<Pick<Floor, 'name' | 'level' | 'floorPlanUri'>>,
 ): Promise<Floor | undefined> {
-  const idx = FLOORS.findIndex((f) => f.id === id);
-  if (idx === -1) return undefined;
-  setFLOORS(FLOORS.map((f, i) => (i === idx ? { ...f, ...patch } : f)));
-  // Sync the floor plan image config when the URI changes
-  if (patch.floorPlanUri !== undefined) {
-    setFloorPlanImage(id, patch.floorPlanUri);
+  try {
+    const dbPatch: Record<string, unknown> = {};
+    if (patch.name !== undefined) dbPatch.name = patch.name;
+    if (patch.level !== undefined) dbPatch.level = patch.level;
+    if (patch.floorPlanUri !== undefined) dbPatch.floor_plan_url = patch.floorPlanUri;
+
+    const { data, error } = await supabase
+      .from('floors')
+      .update(dbPatch)
+      .eq('id', id)
+      .select()
+      .maybeSingle();
+    if (error) throw error;
+    return data ? mapFloor(data as FloorRow) : undefined;
+  } catch (error) {
+    console.error('updateFloor failed:', error);
+    return undefined;
   }
-  return Promise.resolve({ ...FLOORS[idx] });
 }
 
 export async function deleteFloor(id: string): Promise<boolean> {
-  const before = FLOORS.length;
-  setFLOORS(FLOORS.filter((f) => f.id !== id));
-  return Promise.resolve(FLOORS.length < before);
+  try {
+    const { error } = await supabase.from('floors').delete().eq('id', id);
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('deleteFloor failed:', error);
+    return false;
+  }
 }
 
 // ─── Devices ─────────────────────────────────────────────────────────────────
 
 export async function getDevices(): Promise<Device[]> {
-  return Promise.resolve(DEVICES);
+  try {
+    const { data, error } = await supabase
+      .from('devices')
+      .select('*')
+      .order('created_at', { ascending: true });
+    if (error) throw error;
+    return (data ?? []).map((row) => mapDevice(row as DeviceRow));
+  } catch (error) {
+    console.error('getDevices failed:', error);
+    return [];
+  }
 }
 
 export async function getDeviceById(id: string): Promise<Device | undefined> {
-  return Promise.resolve(DEVICES.find((d) => d.id === id));
+  try {
+    const { data, error } = await supabase.from('devices').select('*').eq('id', id).maybeSingle();
+    if (error) throw error;
+    return data ? mapDevice(data as DeviceRow) : undefined;
+  } catch (error) {
+    console.error('getDeviceById failed:', error);
+    return undefined;
+  }
 }
 
 export async function getDevicesByFloor(floorId: string): Promise<Device[]> {
-  return Promise.resolve(DEVICES.filter((d) => d.floorId === floorId));
+  try {
+    const { data, error } = await supabase
+      .from('devices')
+      .select('*')
+      .eq('floor_id', floorId)
+      .order('created_at', { ascending: true });
+    if (error) throw error;
+    return (data ?? []).map((row) => mapDevice(row as DeviceRow));
+  } catch (error) {
+    console.error('getDevicesByFloor failed:', error);
+    return [];
+  }
 }
 
 /**
@@ -81,17 +212,31 @@ export async function getDevicesByFloor(floorId: string): Promise<Device[]> {
  * Returns the updated device.
  */
 export async function toggleDevice(id: string): Promise<Device | undefined> {
-  const device = DEVICES.find((d) => d.id === id);
-  if (!device) return undefined;
+  try {
+    const { data: current, error: readError } = await supabase
+      .from('devices')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+    if (readError) throw readError;
+    if (!current) return undefined;
 
-  // Only toggle devices that are on/off; leave error/offline unchanged
-  if (device.status === 'on') {
-    device.status = 'off';
-  } else if (device.status === 'off') {
-    device.status = 'on';
+    // Only toggle devices that are on/off; leave error/offline unchanged.
+    const status =
+      current.status === 'on' ? 'off' : current.status === 'off' ? 'on' : current.status;
+
+    const { data, error } = await supabase
+      .from('devices')
+      .update({ status, last_updated: new Date().toISOString() })
+      .eq('id', id)
+      .select()
+      .maybeSingle();
+    if (error) throw error;
+    return data ? mapDevice(data as DeviceRow) : undefined;
+  } catch (error) {
+    console.error('toggleDevice failed:', error);
+    return undefined;
   }
-  device.lastUpdated = new Date().toISOString();
-  return Promise.resolve({ ...device });
 }
 
 /**
@@ -101,10 +246,24 @@ export async function updateDevice(
   id: string,
   patch: Partial<Pick<Device, 'status' | 'value' | 'name'>>,
 ): Promise<Device | undefined> {
-  const idx = DEVICES.findIndex((d) => d.id === id);
-  if (idx === -1) return undefined;
-  Object.assign(DEVICES[idx], patch, { lastUpdated: new Date().toISOString() });
-  return Promise.resolve({ ...DEVICES[idx] });
+  try {
+    const dbPatch: Record<string, unknown> = { last_updated: new Date().toISOString() };
+    if (patch.status !== undefined) dbPatch.status = patch.status;
+    if (patch.value !== undefined) dbPatch.value = patch.value;
+    if (patch.name !== undefined) dbPatch.name = patch.name;
+
+    const { data, error } = await supabase
+      .from('devices')
+      .update(dbPatch)
+      .eq('id', id)
+      .select()
+      .maybeSingle();
+    if (error) throw error;
+    return data ? mapDevice(data as DeviceRow) : undefined;
+  } catch (error) {
+    console.error('updateDevice failed:', error);
+    return undefined;
+  }
 }
 
 /**
@@ -114,23 +273,25 @@ export async function addDevice(
   fields: Pick<Device, 'name' | 'type' | 'floorId' | 'roomName'> &
     Partial<Pick<Device, 'value' | 'unit'>>,
 ): Promise<Device> {
-  const newDevice: Device = {
-    id: `d${Date.now()}`,
-    status: 'off',
-    lastUpdated: new Date().toISOString(),
-    ...fields,
-  };
-  setDEVICES([...DEVICES, newDevice]);
-  // Update floor device count
-  const floorIdx = FLOORS.findIndex((f) => f.id === fields.floorId);
-  if (floorIdx !== -1) {
-    setFLOORS(
-      FLOORS.map((f, i) =>
-        i === floorIdx ? { ...f, deviceCount: f.deviceCount + 1 } : f,
-      ),
-    );
-  }
-  return Promise.resolve({ ...newDevice });
+  const userId = await getUserId();
+  if (!userId) throw new Error('Not authenticated');
+
+  const { data, error } = await supabase
+    .from('devices')
+    .insert({
+      user_id: userId,
+      floor_id: fields.floorId,
+      name: fields.name,
+      type: fields.type,
+      status: 'off',
+      room_name: fields.roomName,
+      value: fields.value ?? null,
+      unit: fields.unit ?? null,
+    })
+    .select()
+    .single();
+  if (error) throw new Error(error.message);
+  return mapDevice(data as DeviceRow);
 }
 
 /**
@@ -142,14 +303,26 @@ export function setDevicePinPosition(
   x: number,
   y: number,
 ): void {
-  setDevicePin(floorId, deviceId, x, y);
+  supabase
+    .from('floor_plan_pins')
+    .upsert({ floor_id: floorId, device_id: deviceId, x, y }, { onConflict: 'floor_id,device_id' })
+    .then(({ error }) => {
+      if (error) console.error('setDevicePinPosition failed:', error.message);
+    });
 }
 
 /**
  * Remove the floor plan pin for a device.
  */
 export function removeDevicePinPosition(floorId: string, deviceId: string): void {
-  removeDevicePin(floorId, deviceId);
+  supabase
+    .from('floor_plan_pins')
+    .delete()
+    .eq('floor_id', floorId)
+    .eq('device_id', deviceId)
+    .then(({ error }) => {
+      if (error) console.error('removeDevicePinPosition failed:', error.message);
+    });
 }
 
 // ─── Summary helpers ─────────────────────────────────────────────────────────
