@@ -1,9 +1,11 @@
+import { useAuth } from '@/context/AuthContext';
 import { Redirect } from 'expo-router';
 
 /**
- * Root index — redirects to the login screen on first launch.
- * After successful authentication, the app navigates to (tabs).
+ * Root index — the app entry point.
+ * Authenticated users go straight to the tabs; everyone else lands on login.
  */
 export default function Index() {
-  return <Redirect href="/(auth)/login" />;
+  const { user } = useAuth();
+  return <Redirect href={user ? '/(tabs)' : '/(auth)/login'} />;
 }
