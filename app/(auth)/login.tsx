@@ -1,9 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useAuth } from '@/context/AuthContext';
+import { signIn } from '@/services/authService';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
   Dimensions,
   Image,
   KeyboardAvoidingView,
@@ -20,14 +23,38 @@ import {
 const { width, height } = Dimensions.get('window');
 
 export default function LoginScreen() {
+  const { user } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [emailFocused, setEmailFocused] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSignIn = () => {
-    router.replace('/(tabs)');
+  // Once a real session exists, the guard flips and we can enter the tabs.
+  useEffect(() => {
+    if (user) {
+      router.replace('/(tabs)');
+    }
+  }, [user]);
+
+  const handleSignIn = async () => {
+    if (loading) return;
+    setError(null);
+
+    if (!email.trim() || !password) {
+      setError('Please enter your email and password.');
+      return;
+    }
+
+    setLoading(true);
+    const { error: signInError } = await signIn(email.trim(), password);
+    setLoading(false);
+
+    if (signInError) {
+      setError(signInError.message);
+    }
   };
 
   return (
@@ -151,11 +178,20 @@ export default function LoginScreen() {
                 </BlurView>
               </View>
 
+              {/* Error message */}
+              {error && (
+                <View style={styles.errorBox}>
+                  <Ionicons name="alert-circle-outline" size={16} color="#ff6b7a" />
+                  <Text style={styles.errorText}>{error}</Text>
+                </View>
+              )}
+
               {/* Sign In Button */}
               <TouchableOpacity
                 style={styles.signInButton}
                 onPress={handleSignIn}
                 activeOpacity={0.82}
+                disabled={loading}
               >
                 <LinearGradient
                   colors={['rgba(80,130,255,0.95)', 'rgba(50,100,240,0.95)']}
@@ -163,8 +199,14 @@ export default function LoginScreen() {
                   end={{ x: 1, y: 1 }}
                   style={styles.signInGradient}
                 >
-                  <Text style={styles.signInText}>Sign In</Text>
-                  <Ionicons name="arrow-forward" size={18} color="#ffffff" />
+                  {loading ? (
+                    <ActivityIndicator color="#ffffff" />
+                  ) : (
+                    <>
+                      <Text style={styles.signInText}>Sign In</Text>
+                      <Ionicons name="arrow-forward" size={18} color="#ffffff" />
+                    </>
+                  )}
                 </LinearGradient>
               </TouchableOpacity>
 
@@ -366,6 +408,27 @@ const styles = StyleSheet.create({
   eyeButton: {
     padding: 4,
     marginLeft: 6,
+  },
+
+  // Error
+  errorBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(255, 80, 100, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 100, 120, 0.35)',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 16,
+  },
+  errorText: {
+    flex: 1,
+    color: '#ff6b7a',
+    fontSize: 13,
+    fontWeight: '500',
+    lineHeight: 18,
   },
 
   // Sign In button
