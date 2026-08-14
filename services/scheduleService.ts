@@ -6,6 +6,7 @@
  */
 
 import { supabase } from './supabase';
+import { subscribeToTable, RealtimeEvent } from './realtime';
 import { Schedule } from '@/types/device';
 
 // ─── Row → domain mapper (snake_case DB columns → camelCase type) ────────────
@@ -33,6 +34,24 @@ function mapSchedule(row: ScheduleRow): Schedule {
     days: row.days ?? undefined,
     maxDurationMinutes: row.max_duration_minutes ?? undefined,
   };
+}
+
+// ─── Realtime subscription ───────────────────────────────────────────────────
+
+/**
+ * Subscribe to changes on the `schedules` table. Returns an unsubscribe fn.
+ * Use `filter` (e.g. `device_id=eq.<uuid>`) to narrow to one device's schedules.
+ */
+export function subscribeToSchedules(
+  onChange: (event: RealtimeEvent, schedule?: Schedule) => void,
+  filter?: string,
+): () => void {
+  return subscribeToTable<Schedule>(
+    'schedules',
+    (row) => mapSchedule(row as unknown as ScheduleRow),
+    (event, newRow, oldRow) => onChange(event, newRow ?? oldRow),
+    filter,
+  );
 }
 
 // ─── Get Schedules ───────────────────────────────────────────────────────────
