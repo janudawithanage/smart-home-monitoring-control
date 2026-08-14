@@ -1,5 +1,5 @@
 import { Colors } from '@/constants/colors';
-import { addDevice, addFloor, deleteFloor, getDevices, getFloors, updateFloor } from '@/services/deviceService';
+import { addDevice, addFloor, deleteFloor, getDevices, getFloors, subscribeToDevices, subscribeToFloors, updateFloor } from '@/services/deviceService';
 import { Device, DeviceType, Floor } from '@/types/device';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
@@ -1857,6 +1857,10 @@ function EnergyMonitorScreen({ onScroll }: { onScroll: (e: NativeSyntheticEvent<
     getDevices().then(setDevices);
   }, []);
 
+  useEffect(() => subscribeToDevices(() => {
+    getDevices().then(setDevices);
+  }), []);
+
   const energyData    = useMemo(() => generateEnergyData(devices, filter), [devices, filter]);
   const safetyCutoffs = useMemo(() => generateSafetyCutoffs(devices), [devices]);
   const totalKwh  = energyData.reduce((sum, d) => sum + d.kwh, 0);
@@ -2105,6 +2109,27 @@ export default function HomeScreen() {
       setFloors(f); setDevices(d);
       setFloorList(f); setAllDevices(d); setLoadingFloors(false);
     });
+  }, []);
+
+  // Real-time sync: refetch floors + devices on any DB change so the home and
+  // floors tabs stay current without a manual refresh.
+  useEffect(() => {
+    const unsubscribeDevices = subscribeToDevices(() => {
+      Promise.all([getFloors(), getDevices()]).then(([f, d]) => {
+        setFloors(f); setDevices(d);
+        setFloorList(f); setAllDevices(d); setLoadingFloors(false);
+      });
+    });
+    const unsubscribeFloors = subscribeToFloors(() => {
+      Promise.all([getFloors(), getDevices()]).then(([f, d]) => {
+        setFloors(f); setDevices(d);
+        setFloorList(f); setAllDevices(d); setLoadingFloors(false);
+      });
+    });
+    return () => {
+      unsubscribeDevices();
+      unsubscribeFloors();
+    };
   }, []);
 
   const filteredDevices = useMemo(

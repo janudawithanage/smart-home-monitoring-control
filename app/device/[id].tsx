@@ -17,7 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import StatusBadge from '@/components/StatusBadge';
 import SwitchButton from '@/components/SwitchButton';
 import { Colors } from '@/constants/colors';
-import { getDeviceById, getStatusLabel, toggleDevice, updateDevice } from '@/services/deviceService';
+import { getDeviceById, getStatusLabel, subscribeToDevices, toggleDevice, updateDevice } from '@/services/deviceService';
 import { Device } from '@/types/device';
 
 // ─── Icon map ────────────────────────────────────────────────────────────────
@@ -545,6 +545,18 @@ export default function DeviceDetailScreen() {
       setDevice(d ?? null);
       setLoading(false);
     });
+  }, [id]);
+
+  // Real-time sync for this single device: merge payload into local state.
+  useEffect(() => {
+    if (!id) return;
+    return subscribeToDevices((event, updated) => {
+      if (event === 'DELETE') {
+        setDevice(null);
+      } else if (updated) {
+        setDevice(updated);
+      }
+    }, `id=eq.${id}`);
   }, [id]);
 
   const handleToggle = useCallback(async () => {
