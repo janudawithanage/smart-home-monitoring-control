@@ -15,7 +15,7 @@ import {
     SAFETY_INFO,
     setDevicePin
 } from '@/data/floorPlanData';
-import { getDevices, getFloors, toggleDevice } from '@/services/deviceService';
+import { getDevices, getFloors, subscribeToDevices, subscribeToFloors, toggleDevice } from '@/services/deviceService';
 import { Device, DeviceStatus, DeviceType, Floor } from '@/types/device';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
@@ -750,6 +750,21 @@ export default function FloorPlanScreen() {
         if (dev) setPlacingDevice(dev);
       }
     });
+  }, []);
+
+  // Real-time sync: refetch floors + devices on any DB change so the floor
+  // plan and its pins reflect live status without a manual refresh.
+  useEffect(() => {
+    const unsubscribeDevices = subscribeToDevices(() => {
+      getDevices().then(setDevices);
+    });
+    const unsubscribeFloors = subscribeToFloors(() => {
+      getFloors().then(setFloors);
+    });
+    return () => {
+      unsubscribeDevices();
+      unsubscribeFloors();
+    };
   }, []);
 
   const floorDevices = useMemo(
