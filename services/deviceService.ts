@@ -6,6 +6,7 @@
  */
 
 import { supabase } from './supabase';
+import { subscribeToTable, RealtimeEvent } from './realtime';
 import { Device, DeviceStatus, Floor } from '@/types/device';
 
 // ─── Row → domain mappers (snake_case DB columns → camelCase types) ──────────
@@ -68,6 +69,39 @@ function mapFloor(row: FloorRow): Floor {
 async function getUserId(): Promise<string | null> {
   const { data } = await supabase.auth.getSession();
   return data.session?.user?.id ?? null;
+}
+
+// ─── Realtime subscriptions ──────────────────────────────────────────────────
+
+/**
+ * Subscribe to changes on the `devices` table. Returns an unsubscribe fn.
+ * Use `filter` (e.g. `id=eq.<uuid>`) to narrow to a single device.
+ */
+export function subscribeToDevices(
+  onChange: (event: RealtimeEvent, device?: Device) => void,
+  filter?: string,
+): () => void {
+  return subscribeToTable<Device>(
+    'devices',
+    (row) => mapDevice(row as unknown as DeviceRow),
+    (event, newRow, oldRow) => onChange(event, newRow ?? oldRow),
+    filter,
+  );
+}
+
+/**
+ * Subscribe to changes on the `floors` table. Returns an unsubscribe fn.
+ */
+export function subscribeToFloors(
+  onChange: (event: RealtimeEvent, floor?: Floor) => void,
+  filter?: string,
+): () => void {
+  return subscribeToTable<Floor>(
+    'floors',
+    (row) => mapFloor(row as unknown as FloorRow),
+    (event, newRow, oldRow) => onChange(event, newRow ?? oldRow),
+    filter,
+  );
 }
 
 // ─── Floors ──────────────────────────────────────────────────────────────────
