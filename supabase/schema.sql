@@ -297,16 +297,16 @@ create policy "alerts delete own" on public.alerts
   for delete using (auth.uid () = user_id);
 
 -- ============================================================================
--- 5) OPTIONAL — REALTIME (postgres_changes)
---    UNCOMMENT these lines when you implement real-time subscriptions (Step 5).
+-- 5) REALTIME (postgres_changes)
+--    Required for live UI sync (Supabase realtime subscriptions).
 --    Run AFTER tables exist; re-running will error on tables already published.
 -- ============================================================================
--- alter publication supabase_realtime add table public.floors;
--- alter publication supabase_realtime add table public.devices;
--- alter publication supabase_realtime add table public.switch_circuits;
--- alter publication supabase_realtime add table public.schedules;
--- alter publication supabase_realtime add table public.floor_plan_pins;
--- alter publication supabase_realtime add table public.alerts;
+alter publication supabase_realtime add table public.floors;
+alter publication supabase_realtime add table public.devices;
+alter publication supabase_realtime add table public.switch_circuits;
+alter publication supabase_realtime add table public.schedules;
+alter publication supabase_realtime add table public.floor_plan_pins;
+alter publication supabase_realtime add table public.alerts;
 
 -- ============================================================================
 -- Done. Sanity checks you can run:
