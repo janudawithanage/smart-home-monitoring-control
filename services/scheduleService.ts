@@ -9,6 +9,36 @@ import { supabase } from './supabase';
 import { subscribeToTable, RealtimeEvent } from './realtime';
 import { Schedule } from '@/types/device';
 
+// ─── Time zone conversion ─────────────────────────────────────────────────────
+// The DB stores schedule `time` in UTC; the app's domain model uses the device's
+// local time. These helpers convert across that boundary using the device's real
+// time zone (via Date), not a hard-coded offset.
+//
+// DST note: "today" is used as the reference date, so conversion is exact for
+// time zones without DST (e.g. Sri Lanka). For DST-observing zones a schedule
+// recurring across a transition could be off by an hour on the far side.
+
+function parseHm(time: string): [number, number] {
+  const [h, m] = time.split(':').map(Number);
+  return [h || 0, m || 0];
+}
+
+/** Local "HH:MM" → UTC "HH:MM" (used on write). */
+function localTimeToUtc(time: string): string {
+  const [h, m] = parseHm(time);
+  const now = new Date();
+  const local = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m, 0, 0);
+  return `${String(local.getUTCHours()).padStart(2, '0')}:${String(local.getUTCMinutes()).padStart(2, '0')}`;
+}
+
+/** UTC "HH:MM" → local "HH:MM" (used on read). */
+function utcTimeToLocal(time: string): string {
+  const [h, m] = parseHm(time);
+  const now = new Date();
+  const utc = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), h, m, 0, 0));
+  return `${String(utc.getHours()).padStart(2, '0')}:${String(utc.getMinutes()).padStart(2, '0')}`;
+}
+
 // ─── Row → domain mapper (snake_case DB columns → camelCase type) ────────────
 
 interface ScheduleRow {
@@ -29,7 +59,7 @@ function mapSchedule(row: ScheduleRow): Schedule {
     deviceId: row.device_id,
     type: row.type,
     enabled: row.enabled,
-    time: row.time ? row.time.slice(0, 5) : undefined, // "HH:MM:SS" → "HH:MM"
+    time: row.time ? utcTimeToLocal(row.time.slice(0, 5)) : undefined, // UTC "HH:MM:SS" → local "HH:MM"
     action: row.action ?? undefined,
     days: row.days ?? undefined,
     maxDurationMinutes: row.max_duration_minutes ?? undefined,
@@ -105,7 +135,7 @@ export async function addSchedule(data: Omit<Schedule, 'id'>): Promise<Schedule>
       device_id: data.deviceId,
       type: data.type,
       enabled: data.enabled,
-      time: data.time ?? null,
+      time: data.time ? localTimeToUtc(data.time) : null,
       action: data.action ?? null,
       days: data.days ?? null,
       max_duration_minutes: data.maxDurationMinutes ?? null,
@@ -126,7 +156,7 @@ export async function updateSchedule(
     const dbPatch: Record<string, unknown> = {};
     if (patch.type !== undefined) dbPatch.type = patch.type;
     if (patch.enabled !== undefined) dbPatch.enabled = patch.enabled;
-    if (patch.time !== undefined) dbPatch.time = patch.time;
+    if (patch.time !== undefined) dbPatch.time = localTimeToUtc(patch.time);
     if (patch.action !== undefined) dbPatch.action = patch.action;
     if (patch.days !== undefined) dbPatch.days = patch.days;
     if (patch.maxDurationMinutes !== undefined) dbPatch.max_duration_minutes = patch.maxDurationMinutes;
@@ -171,6 +201,8 @@ export async function deleteSchedule(id: string): Promise<boolean> {
 /**
  * Check if a schedule should trigger now.
  * This would typically run in a background service or be handled by the backend.
+ * Note: `schedule.time` is local time (mapSchedule converts UTC → local), and
+ * `now` is local, so the comparison is timezone-consistent.
  */
 export function shouldScheduleTrigger(schedule: Schedule, now: Date = new Date()): boolean {
   if (!schedule.enabled) return false;
