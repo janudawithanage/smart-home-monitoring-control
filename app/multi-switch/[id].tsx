@@ -17,7 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import StatusBadge from '@/components/StatusBadge';
 import SwitchButton from '@/components/SwitchButton';
 import { Colors } from '@/constants/colors';
-import { getDeviceById, updateDevice } from '@/services/deviceService';
+import { getDeviceById, subscribeToDevices, updateDevice } from '@/services/deviceService';
 import { Device, DeviceStatus } from '@/types/device';
 
 // ─── Types for Multi-Switch ──────────────────────────────────────────────────
@@ -73,6 +73,18 @@ export default function MultiSwitchDetailScreen() {
       setLoading(false);
     });
   }, [id, switchCount]);
+
+  // Real-time sync for this single device: merge payload into local state.
+  useEffect(() => {
+    if (!id) return;
+    return subscribeToDevices((event, updated) => {
+      if (event === 'DELETE') {
+        setDevice(null);
+      } else if (updated) {
+        setDevice(updated);
+      }
+    }, `id=eq.${id}`);
+  }, [id]);
 
   const handleToggleCircuit = useCallback((circuitId: string) => {
     setCircuits((prev) =>

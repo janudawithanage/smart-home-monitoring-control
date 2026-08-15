@@ -1,16 +1,16 @@
-/**
- * Supabase client placeholder.
- *
- * To activate real Supabase integration:
- *   1. Run: npx expo install @supabase/supabase-js
- *   2. Add EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY to your .env
- *   3. Replace the stub below with:
- *
- *      import { createClient } from '@supabase/supabase-js';
- *      export const supabase = createClient(
- *        process.env.EXPO_PUBLIC_SUPABASE_URL!,
- *        process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!,
- *      );
- */
+import 'react-native-url-polyfill/auto';
 
-export const supabase = null;
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!;
+const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    storage: AsyncStorage,
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: false,
+  },
+});

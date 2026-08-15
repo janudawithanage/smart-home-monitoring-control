@@ -6,8 +6,8 @@ import { ActivityIndicator, Alert, ScrollView, StatusBar, StyleSheet, Text, Touc
 import { SafeAreaView } from 'react-native-safe-area-context';
 import SwitchButton from '@/components/SwitchButton';
 import { Colors } from '@/constants/colors';
-import { getDeviceById } from '@/services/deviceService';
-import { deleteSchedule, getSchedulesForDevice, toggleSchedule } from '@/services/scheduleService';
+import { getDeviceById, subscribeToDevices } from '@/services/deviceService';
+import { deleteSchedule, getSchedulesForDevice, subscribeToSchedules, toggleSchedule } from '@/services/scheduleService';
 import { Device, Schedule } from '@/types/device';
 
 const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -43,6 +43,31 @@ export default function ScheduleScreen() {
       setSchedules(scheds);
       setLoading(false);
     });
+  }, [id]);
+
+  // Real-time sync: merge device updates, and merge schedule changes for this device.
+  useEffect(() => {
+    if (!id) return;
+    const unsubscribeDevice = subscribeToDevices((event, updated) => {
+      if (event === 'DELETE') {
+        setDevice(null);
+      } else if (updated) {
+        setDevice(updated);
+      }
+    }, `id=eq.${id}`);
+    const unsubscribeSchedules = subscribeToSchedules((event, sched) => {
+      if (!sched) return;
+      setSchedules((prev) => {
+        if (event === 'INSERT') return [...prev, sched];
+        if (event === 'UPDATE') return prev.map((s) => (s.id === sched.id ? sched : s));
+        if (event === 'DELETE') return prev.filter((s) => s.id !== sched.id);
+        return prev;
+      });
+    }, `device_id=eq.${id}`);
+    return () => {
+      unsubscribeDevice();
+      unsubscribeSchedules();
+    };
   }, [id]);
 
   const timeSchedules = schedules.filter((s) => s.type === 'time');

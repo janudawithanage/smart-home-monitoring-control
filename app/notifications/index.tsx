@@ -2,11 +2,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Alert, Platform, ScrollView, StatusBar,
   StyleSheet, Text, TouchableOpacity, View
 } from 'react-native';
+import { Alert as AlertItem, AlertType, deleteAlert, deleteAllAlerts, getAlerts, markAlertRead, markAllAlertsRead, subscribeToAlerts } from '@/services/alertService';
 
 const IOS_TOP = Platform.OS === 'ios' ? 54 : 36;
 const IOS_BOTTOM = Platform.OS === 'ios' ? 34 : 16;
@@ -26,88 +27,34 @@ interface Notification {
   color: string;
 }
 
-const MOCK_NOTIFICATIONS: Notification[] = [
-  {
-    id: 'n1',
-    category: 'safety',
-    title: 'Safety Cutoff Triggered',
-    message: 'Iron automatically turned off after 30 minutes of inactivity',
-    timestamp: '2026-08-11T14:30:00',
-    read: false,
-    icon: 'shield-checkmark',
-    color: '#FF9F0A',
-  },
-  {
-    id: 'n2',
-    category: 'device',
-    title: 'Device Offline',
-    message: 'Living Room Camera lost connection',
-    timestamp: '2026-08-11T13:15:00',
-    read: false,
-    icon: 'cloud-offline',
-    color: '#FF9F0A',
-  },
-  {
-    id: 'n3',
-    category: 'energy',
-    title: 'High Energy Usage Alert',
-    message: 'Your energy consumption is 15% higher than yesterday',
-    timestamp: '2026-08-11T12:00:00',
-    read: true,
-    icon: 'flash',
-    color: '#FF375F',
-  },
-  {
-    id: 'n4',
-    category: 'device',
-    title: 'Device Updated',
-    message: 'Bedroom Light firmware updated successfully',
-    timestamp: '2026-08-11T10:45:00',
-    read: true,
-    icon: 'checkmark-circle',
-    color: '#30D158',
-  },
-  {
-    id: 'n5',
-    category: 'system',
-    title: 'System Maintenance',
-    message: 'Scheduled maintenance completed successfully',
-    timestamp: '2026-08-11T09:00:00',
-    read: true,
-    icon: 'construct',
-    color: '#0A84FF',
-  },
-  {
-    id: 'n6',
-    category: 'safety',
-    title: 'Unusual Activity Detected',
-    message: 'Front Door Lock accessed at unusual time',
-    timestamp: '2026-08-11T02:30:00',
-    read: false,
-    icon: 'alert-circle',
-    color: '#FF375F',
-  },
-  {
-    id: 'n7',
-    category: 'device',
-    title: 'Device Added',
-    message: 'New Multi-Switch Panel added to Kitchen',
-    timestamp: '2026-08-10T18:20:00',
-    read: true,
-    icon: 'add-circle',
-    color: '#0A84FF',
-  },
-  {
-    id: 'n8',
-    category: 'energy',
-    title: 'Weekly Energy Report',
-    message: 'Your weekly energy report is ready to view',
-    timestamp: '2026-08-10T08:00:00',
-    read: true,
-    icon: 'document-text',
-    color: '#BF5AF2',
-  },
-];
+// ─── Alert → Notification mapping (UI derives icon/color/category from type) ──
+// DB alert `type` (safety/error/offline/info) → UI `category` (device/safety/
+// system/energy). There's no 1:1 "energy" type, so energy alerts are not
+// produced yet; `error`/`offline` map to the "device" category, `info`→"system".
+const ALERT_TYPE_META: Record<AlertType, {
+  category: NotificationCategory;
+  icon: keyof typeof Ionicons.glyphMap;
+  color: string;
+}> = {
+  safety:  { category: 'safety', icon: 'shield-checkmark',    color: '#FF9F0A' },
+  error:   { category: 'device', icon: 'alert-circle',        color: '#FF375F' },
+  offline: { category: 'device', icon: 'cloud-offline',       color: '#FF9F0A' },
+  info:    { category: 'system', icon: 'information-circle',  color: '#0A84FF' },
+};
+
+function mapAlertToNotification(alert: AlertItem): Notification {
+  const meta = ALERT_TYPE_META[alert.type];
+  return {
+    id: alert.id,
+    category: meta.category,
+    title: alert.title,
+    message: alert.message,
+    timestamp: alert.createdAt,
+    read: alert.read,
+    icon: meta.icon,
+    color: meta.color,
+  };
+}
 
 const FILTER_OPTIONS: { id: NotificationFilter; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
   { id: 'all', label: 'All', icon: 'apps' },
@@ -136,8 +83,29 @@ function formatNotificationTime(isoString: string): string {
 }
 
 export default function NotificationsScreen() {
-  const [notifications, setNotifications] = useState<Notification[]>(MOCK_NOTIFICATIONS);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [filter, setFilter] = useState<NotificationFilter>('all');
+
+  // Load alerts on mount and keep them in sync via realtime.
+  useEffect(() => {
+    let active = true;
+    getAlerts().then((alerts) => {
+      if (active) setNotifications(alerts.map(mapAlertToNotification));
+    });
+    const unsubscribe = subscribeToAlerts((event, alert) => {
+      if (!alert) return;
+      setNotifications((prev) => {
+        const mapped = mapAlertToNotification(alert);
+        if (event === 'DELETE') return prev.filter((n) => n.id !== mapped.id);
+        const exists = prev.some((n) => n.id === mapped.id);
+        return exists ? prev.map((n) => (n.id === mapped.id ? mapped : n)) : [mapped, ...prev];
+      });
+    });
+    return () => {
+      active = false;
+      unsubscribe();
+    };
+  }, []);
 
   const filteredNotifications = notifications.filter(n => {
     if (filter === 'all') return true;
@@ -147,13 +115,15 @@ export default function NotificationsScreen() {
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
-  const handleToggleRead = (id: string) => {
-    setNotifications(prev =>
-      prev.map(n => (n.id === id ? { ...n, read: !n.read } : n))
-    );
+  const handleToggleRead = async (id: string) => {
+    const notif = notifications.find((n) => n.id === id);
+    if (!notif || notif.read) return; // DB only supports marking read, not unread
+    const ok = await markAlertRead(id);
+    if (ok) setNotifications(prev => prev.map(n => (n.id === id ? { ...n, read: true } : n)));
   };
 
-  const handleMarkAllRead = () => {
+  const handleMarkAllRead = async () => {
+    await markAllAlertsRead();
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
   };
 
@@ -166,7 +136,10 @@ export default function NotificationsScreen() {
         {
           text: 'Clear All',
           style: 'destructive',
-          onPress: () => setNotifications([]),
+          onPress: async () => {
+            await deleteAllAlerts();
+            setNotifications([]);
+          },
         },
       ]
     );
@@ -181,7 +154,10 @@ export default function NotificationsScreen() {
         {
           text: 'Delete',
           style: 'destructive',
-          onPress: () => setNotifications(prev => prev.filter(n => n.id !== id)),
+          onPress: async () => {
+            const ok = await deleteAlert(id);
+            if (ok) setNotifications(prev => prev.filter(n => n.id !== id));
+          },
         },
       ]
     );

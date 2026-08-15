@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { signOut } from '@/services/authService';
 import { BlurView } from 'expo-blur';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -64,6 +65,15 @@ export default function ProfileScreen() {
   const handleCancel = () => {
     setProfile(INITIAL_DATA);
     setIsEditing(false);
+  };
+
+  const handleLogout = async () => {
+    const { error } = await signOut();
+    if (error) {
+      Alert.alert('Error', error.message);
+      return;
+    }
+    router.replace('/(auth)/login');
   };
 
   return (
@@ -254,6 +264,13 @@ export default function ProfileScreen() {
               </View>
             </View>
           </View>
+
+          {/* Sign Out */}
+          <TouchableOpacity style={S.logoutBtn} onPress={handleLogout} activeOpacity={0.8}>
+            <BlurView intensity={38} tint="dark" style={StyleSheet.absoluteFillObject} />
+            <Ionicons name="log-out-outline" size={20} color="#FF6B7A" style={{ marginRight: 8 }} />
+            <Text style={S.logoutBtnText}>Sign Out</Text>
+          </TouchableOpacity>
 
           {/* Action Buttons */}
           {isEditing && (
@@ -489,8 +506,7 @@ const S = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
     marginTop: 8,
-  },
-  cancelBtn: {
+  },  cancelBtn: {
     flex: 1,
     height: 56,
     borderRadius: 16,
@@ -519,5 +535,23 @@ const S = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#ffffff',
+  },
+
+  // Sign Out
+  logoutBtn: {
+    height: 56,
+    borderRadius: 16,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 107, 122, 0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    marginTop: 8,
+  },
+  logoutBtnText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FF6B7A',
   },
 });

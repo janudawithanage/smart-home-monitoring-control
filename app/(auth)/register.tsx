@@ -1,9 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useAuth } from '@/context/AuthContext';
+import { signIn, signUp } from '@/services/authService';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
   Dimensions,
   Image,
   KeyboardAvoidingView,
@@ -20,6 +23,7 @@ import {
 const { width, height } = Dimensions.get('window');
 
 export default function RegisterScreen() {
+  const { user } = useAuth();
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -33,8 +37,62 @@ export default function RegisterScreen() {
   const [passwordFocused, setPasswordFocused] = useState(false);
   const [confirmPasswordFocused, setConfirmPasswordFocused] = useState(false);
 
-  const handleRegister = () => {
-    // TODO: wire up registration logic
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+
+  // Only fires when a real session exists (i.e. "Confirm email" is disabled
+  // and signUp returned a session). With email confirmation on, user stays
+  // null and the screen shows the "check your email" message instead.
+  useEffect(() => {
+    if (user) {
+      router.replace('/(tabs)');
+    }
+  }, [user]);
+
+  const handleRegister = async () => {
+    if (loading) return;
+    setError(null);
+    setSuccess(null);
+
+    if (!fullName.trim() || !email.trim() || !password) {
+      setError('Please fill in all fields.');
+      return;
+    }
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters.');
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError('Passwords do not match.');
+      return;
+    }
+
+    setLoading(true);
+    const { data, error: signUpError } = await signUp(email.trim(), password, fullName.trim());
+
+    if (signUpError) {
+      setLoading(false);
+      setError(signUpError.message);
+      return;
+    }
+
+    // Auto sign-in so the user lands in the app without re-entering credentials.
+    // With "Confirm email" disabled, signUp returns a session immediately and
+    // the useEffect above redirects to the tabs. If no session came back, sign
+    // in right away — this only works while email confirmation is disabled
+    // (otherwise Supabase returns "Email not confirmed").
+    if (!data.session) {
+      const { error: signInError } = await signIn(email.trim(), password);
+      if (signInError) {
+        setLoading(false);
+        setError(signInError.message);
+        return;
+      }
+    }
+
+    setLoading(false);
+    // A session now exists → the useEffect above auto-redirects to the tabs.
   };
 
   return (
@@ -220,11 +278,26 @@ export default function RegisterScreen() {
                 </BlurView>
               </View>
 
+              {/* Error / success message */}
+              {error && (
+                <View style={styles.messageBoxError}>
+                  <Ionicons name="alert-circle-outline" size={16} color="#ff6b7a" />
+                  <Text style={styles.messageTextError}>{error}</Text>
+                </View>
+              )}
+              {success && (
+                <View style={styles.messageBoxSuccess}>
+                  <Ionicons name="checkmark-circle-outline" size={16} color="#30D158" />
+                  <Text style={styles.messageTextSuccess}>{success}</Text>
+                </View>
+              )}
+
               {/* Register Button */}
               <TouchableOpacity
                 style={styles.registerButton}
                 onPress={handleRegister}
                 activeOpacity={0.82}
+                disabled={loading}
               >
                 <LinearGradient
                   colors={['rgba(80,130,255,0.95)', 'rgba(50,100,240,0.95)']}
@@ -232,8 +305,14 @@ export default function RegisterScreen() {
                   end={{ x: 1, y: 1 }}
                   style={styles.registerGradient}
                 >
-                  <Text style={styles.registerText}>Create Account</Text>
-                  <Ionicons name="arrow-forward" size={18} color="#ffffff" />
+                  {loading ? (
+                    <ActivityIndicator color="#ffffff" />
+                  ) : (
+                    <>
+                      <Text style={styles.registerText}>Create Account</Text>
+                      <Ionicons name="arrow-forward" size={18} color="#ffffff" />
+                    </>
+                  )}
                 </LinearGradient>
               </TouchableOpacity>
 
@@ -401,6 +480,46 @@ const styles = StyleSheet.create({
   eyeButton: {
     padding: 4,
     marginLeft: 6,
+  },
+
+  // Messages
+  messageBoxError: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(255, 80, 100, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 100, 120, 0.35)',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 16,
+  },
+  messageTextError: {
+    flex: 1,
+    color: '#ff6b7a',
+    fontSize: 13,
+    fontWeight: '500',
+    lineHeight: 18,
+  },
+  messageBoxSuccess: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(48, 209, 88, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(48, 209, 88, 0.35)',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 16,
+  },
+  messageTextSuccess: {
+    flex: 1,
+    color: '#30D158',
+    fontSize: 13,
+    fontWeight: '500',
+    lineHeight: 18,
   },
 
   // Register button
