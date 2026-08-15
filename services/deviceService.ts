@@ -62,7 +62,6 @@ function mapFloor(row: FloorRow): Floor {
     level: row.level,
     deviceCount: row.device_count,
     activeDeviceCount: row.active_device_count,
-    floorPlanUri: row.floor_plan_url ?? undefined,
   };
 }
 
@@ -150,14 +149,13 @@ export async function getFloorById(id: string): Promise<Floor | undefined> {
 export async function addFloor(
   name: string,
   level: number,
-  floorPlanUri?: string,
 ): Promise<Floor> {
   const userId = await getUserId();
   if (!userId) throw new Error('Not authenticated');
 
   const { data, error } = await supabase
     .from('floors')
-    .insert({ user_id: userId, name, level, floor_plan_url: floorPlanUri ?? null })
+    .insert({ user_id: userId, name, level, floor_plan_url: null })
     .select()
     .single();
   if (error) throw new Error(error.message);
@@ -166,13 +164,12 @@ export async function addFloor(
 
 export async function updateFloor(
   id: string,
-  patch: Partial<Pick<Floor, 'name' | 'level' | 'floorPlanUri'>>,
+  patch: Partial<Pick<Floor, 'name' | 'level'>>,
 ): Promise<Floor | undefined> {
   try {
     const dbPatch: Record<string, unknown> = {};
     if (patch.name !== undefined) dbPatch.name = patch.name;
     if (patch.level !== undefined) dbPatch.level = patch.level;
-    if (patch.floorPlanUri !== undefined) dbPatch.floor_plan_url = patch.floorPlanUri;
 
     const { data, error } = await supabase
       .from('floors')
@@ -274,17 +271,19 @@ export async function toggleDevice(id: string): Promise<Device | undefined> {
 }
 
 /**
- * Update any device property (e.g. brightness value).
+ * Update any device property (e.g. brightness value, safety timeout).
+ * `safetyTimeout` accepts `null` to clear the timeout (disable auto-shutoff).
  */
 export async function updateDevice(
   id: string,
-  patch: Partial<Pick<Device, 'status' | 'value' | 'name'>>,
+  patch: Partial<Pick<Device, 'status' | 'value' | 'name'>> & { safetyTimeout?: number | null },
 ): Promise<Device | undefined> {
   try {
     const dbPatch: Record<string, unknown> = { last_updated: new Date().toISOString() };
     if (patch.status !== undefined) dbPatch.status = patch.status;
     if (patch.value !== undefined) dbPatch.value = patch.value;
     if (patch.name !== undefined) dbPatch.name = patch.name;
+    if (patch.safetyTimeout !== undefined) dbPatch.safety_timeout = patch.safetyTimeout;
 
     const { data, error } = await supabase
       .from('devices')
@@ -357,6 +356,66 @@ export function removeDevicePinPosition(floorId: string, deviceId: string): void
     .then(({ error }) => {
       if (error) console.error('removeDevicePinPosition failed:', error.message);
     });
+}
+
+/**
+ * Position of a device pin on a floor plan (0–100 % of image width/height).
+ * Matches the shape used by data/floorPlanData.ts without importing it.
+ */
+export interface PinPosition {
+  deviceId: string;
+  x: number;
+  y: number;
+}
+
+interface PinRow {
+  id: string;
+  floor_id: string;
+  device_id: string;
+  x: number | string;
+  y: number | string;
+  created_at: string;
+}
+
+function mapPin(row: PinRow): PinPosition {
+  return {
+    deviceId: row.device_id,
+    x: Number(row.x),
+    y: Number(row.y),
+  };
+}
+
+/**
+ * Fetch all pin positions for a floor.
+ */
+export async function getPinsForFloor(floorId: string): Promise<PinPosition[]> {
+  try {
+    const { data, error } = await supabase
+      .from('floor_plan_pins')
+      .select('device_id, x, y')
+      .eq('floor_id', floorId);
+    if (error) throw error;
+    return (data ?? []).map((row) => mapPin(row as PinRow));
+  } catch (error) {
+    console.error('getPinsForFloor failed:', error);
+    return [];
+  }
+}
+
+/**
+ * Subscribe to changes on the `floor_plan_pins` table. Returns an unsubscribe fn.
+ * Use `filter` (e.g. `floor_id=eq.<uuid>`) to scope to a single floor.
+ */
+export function subscribeToFloorPlanPins(
+  onChange: (event: RealtimeEvent, pin?: PinPosition) => void,
+  filter?: string,
+): () => void {
+  return subscribeToTable<PinPosition>(
+    'floor_plan_pins',
+    (row) => mapPin(row as unknown as PinRow),
+    (event, newRow, oldRow) => onChange(event, newRow ?? oldRow),
+    filter,
+  );
 }
 
 // ─── Summary helpers ─────────────────────────────────────────────────────────
