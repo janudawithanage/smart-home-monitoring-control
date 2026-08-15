@@ -1,9 +1,11 @@
+import { useAuth } from '@/context/AuthContext';
 import { Colors } from '@/constants/colors';
+import { getAlerts, subscribeToAlerts } from '@/services/alertService';
 import { addDevice, addFloor, deleteFloor, getDevices, getFloors, subscribeToDevices, subscribeToFloors, updateFloor } from '@/services/deviceService';
+import { computeEnergyData, EnergyData } from '@/services/energyService';
 import { Device, DeviceType, Floor } from '@/types/device';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
-import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -21,7 +23,6 @@ const H_PAD      = 20;
 const STAT_TILE_W = 122;
 const CATEGORY_W  = (width - H_PAD * 2 - 12 * 2) / 2.3;
 const CARD_W      = (width - H_PAD * 2 - 16) / 2;
-const USER_NAME  = 'Januda';
 
 const FLOOR_LEVEL_ICON: (keyof typeof Ionicons.glyphMap)[] = [
   'home-outline', 'bed-outline', 'telescope-outline',
@@ -80,6 +81,16 @@ function getGreeting() {
   if (h < 12) return 'Good Morning';
   if (h < 18) return 'Good Afternoon';
   return 'Good Evening';
+}
+function getDisplayName(user: { email?: string | null; user_metadata?: Record<string, unknown> } | null | undefined): string {
+  const fullName = user?.user_metadata?.full_name;
+  if (typeof fullName === 'string' && fullName.trim()) return fullName.trim();
+  const email = user?.email;
+  if (email) {
+    const prefix = email.split('@')[0];
+    if (prefix) return prefix.replace(/[._-]+/g, ' ');
+  }
+  return 'there';
 }
 function buildActivityText(d: Device): string {
   if (d.type === 'lock')   return `${d.name} ${d.status === 'on' ? 'locked' : 'unlocked'}`;
@@ -188,13 +199,15 @@ function HomeNavBar({ alerts }: { alerts: number }) {
 }
 
 function LargeTitle({ issueCount }: { issueCount: number }) {
+  const { user } = useAuth();
+  const displayName = getDisplayName(user);
   const healthy   = issueCount === 0;
   const pillColor = healthy ? '#30D158' : '#FF375F';
   const pillText  = healthy ? 'All Systems Normal' : `${issueCount} Issue${issueCount > 1 ? 's' : ''} Detected`;
   return (
     <View style={S.largeTitleSection}>
       <Text style={S.largeTitleSub}>{getGreeting()}</Text>
-      <Text style={S.largeTitleMain}>{USER_NAME}</Text>
+      <Text style={S.largeTitleMain}>{displayName}</Text>
       <View style={S.statusPillOuter}>
         <View style={[S.statusPillBloom, { backgroundColor: `${pillColor}22` }]} />
         <BlurView intensity={45} tint="dark" style={S.statusPillBlur}>
@@ -543,8 +556,8 @@ function FloorCard({ floor, devices, onOpen, onEdit, onDelete }: {
   const scaleAnim  = useRef(new Animated.Value(1)).current;
   const pressIn  = () => Animated.spring(scaleAnim, { toValue: 0.96, useNativeDriver: true, speed: 40, bounciness: 5 }).start();
   const pressOut = () => Animated.spring(scaleAnim, { toValue: 1,    useNativeDriver: true, speed: 40, bounciness: 5 }).start();
-  // Use the user-uploaded floor plan if available, otherwise the default preview
-  const previewSource = floor.floorPlanUri ? { uri: floor.floorPlanUri } : FLOOR_PLAN_IMAGE;
+  // Floors always use the bundled default preview (no Storage upload pipeline).
+  const previewSource = FLOOR_PLAN_IMAGE;
   return (
     <Animated.View style={[S.cardWrap, { transform: [{ scale: scaleAnim }] }]}>
       <TouchableOpacity activeOpacity={1} onPress={onOpen} onPressIn={pressIn} onPressOut={pressOut}
@@ -625,44 +638,26 @@ function FloorEmptyState({ onAdd }: { onAdd: () => void }) {
 
 function FloorModal({ visible, editingFloor, onClose, onSave }: {
   visible: boolean; editingFloor: Floor | null;
-  onClose: () => void; onSave: (name: string, level: number, floorPlanUri?: string) => void;
+  onClose: () => void; onSave: (name: string, level: number) => void;
 }) {
-  const [name,         setName]         = useState('');
-  const [level,        setLevel]        = useState(0);
-  const [floorPlanUri, setFloorPlanUri] = useState<string | undefined>(undefined);
+  const [name,  setName]  = useState('');
+  const [level, setLevel] = useState(0);
   const slideAnim = useRef(new Animated.Value(height)).current;
 
   useEffect(() => {
     if (visible) {
       setName(editingFloor?.name ?? '');
       setLevel(editingFloor?.level ?? 0);
-      setFloorPlanUri(editingFloor?.floorPlanUri);
       Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, speed: 20, bounciness: 4 }).start();
     } else {
       Animated.timing(slideAnim, { toValue: height, useNativeDriver: true, duration: 220 }).start();
     }
   }, [visible, editingFloor]);
 
-  const handlePickImage = useCallback(async () => {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
-      Alert.alert('Permission Required', 'Allow access to your photo library to upload a floor plan.');
-      return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      quality: 0.85,
-    });
-    if (!result.canceled && result.assets[0]) {
-      setFloorPlanUri(result.assets[0].uri);
-    }
-  }, []);
-
   const handleSave = () => {
     const trimmed = name.trim();
     if (!trimmed) { Alert.alert('Name Required', 'Please enter a floor name.'); return; }
-    onSave(trimmed, level, floorPlanUri);
+    onSave(trimmed, level);
   };
 
   return (
@@ -710,36 +705,6 @@ function FloorModal({ visible, editingFloor, onClose, onSave }: {
                 );
               })}
             </View>
-          </View>
-
-          {/* Floor Plan Upload */}
-          <View style={S.inputSection}>
-            <Text style={S.inputLabel}>Floor Plan Image</Text>
-            <TouchableOpacity style={S.floorPlanUploadBtn} onPress={handlePickImage}
-              accessibilityRole="button" accessibilityLabel="Upload floor plan image">
-              <BlurView intensity={30} tint="dark" style={StyleSheet.absoluteFillObject} />
-              <View style={[S.inputBorder as any, { borderColor: floorPlanUri ? 'rgba(10,132,255,0.45)' : 'rgba(255,255,255,0.18)' }]} />
-              {floorPlanUri ? (
-                <>
-                  <Image source={{ uri: floorPlanUri }} style={S.floorPlanThumb} resizeMode="cover" />
-                  <View style={S.floorPlanOverlay}>
-                    <Ionicons name="image-outline" size={18} color="#0A84FF" />
-                    <Text style={S.floorPlanUploadText}>Change image</Text>
-                  </View>
-                  <View style={S.floorPlanCheckBadge}>
-                    <Ionicons name="checkmark-circle" size={20} color="#30D158" />
-                  </View>
-                </>
-              ) : (
-                <View style={S.floorPlanEmptyInner}>
-                  <View style={S.floorPlanIconRing}>
-                    <Ionicons name="cloud-upload-outline" size={22} color="rgba(10,132,255,0.8)" />
-                  </View>
-                  <Text style={S.floorPlanUploadText}>Upload floor plan</Text>
-                  <Text style={S.floorPlanUploadSub}>Tap to pick an image from your library</Text>
-                </View>
-              )}
-            </TouchableOpacity>
           </View>
 
           <TouchableOpacity style={S.saveBtn} onPress={handleSave} accessibilityRole="button">
@@ -1243,38 +1208,12 @@ const DEVICE_TYPE_LABELS: Record<string, string> = {
   multiSwitch: 'Switch Panel',
 };
 
-interface EnergyData {
-  deviceId: string;
-  deviceName: string;
-  deviceType: DeviceType;
-  kwh: number;
-  cost: number;
-  color: string;
-  percentage: number;
-}
-
 interface SafetyCutoff {
   id: string;
   deviceName: string;
   timestamp: string;
   reason: string;
   duration: number;
-}
-
-function generateEnergyData(devices: Device[], filter: TimeFilter): EnergyData[] {
-  const multiplier = filter === 'today' ? 1 : filter === 'week' ? 7 : 30;
-  const data: EnergyData[] = devices
-    .filter(d => d.status === 'on' || d.type === 'iron' || d.type === 'outlet')
-    .map(d => {
-      const baseKwh = d.type === 'iron' ? 1.2 : d.type === 'outlet' ? 0.8 : d.type === 'light' ? 0.06 :
-                      d.type === 'fan' ? 0.075 : d.type === 'tv' ? 0.15 : d.type === 'thermostat' ? 2.5 : 0.1;
-      const kwh = baseKwh * multiplier * (0.7 + Math.random() * 0.6);
-      const cost = kwh * 0.15;
-      const color = (Colors.device as Record<string, string>)[d.type] || Colors.accent.blue;
-      return { deviceId: d.id, deviceName: d.name, deviceType: d.type, kwh, cost, color, percentage: 0 };
-    });
-  const totalKwh = data.reduce((sum, d) => sum + d.kwh, 0);
-  return data.map(d => ({ ...d, percentage: totalKwh > 0 ? (d.kwh / totalKwh) * 100 : 0 })).sort((a, b) => b.kwh - a.kwh);
 }
 
 function generateSafetyCutoffs(devices: Device[]): SafetyCutoff[] {
@@ -1674,6 +1613,9 @@ function SettingsNavBar() {
 }
 
 function UserProfileCard() {
+  const { user } = useAuth();
+  const displayName = getDisplayName(user);
+  const initial = displayName.charAt(0).toUpperCase();
   return (
     <TouchableOpacity style={S.profileCard} activeOpacity={0.8} onPress={() => router.push('/profile')}>
       <View style={[S.profileBloom, { backgroundColor: '#0A84FF15' }]} />
@@ -1682,10 +1624,10 @@ function UserProfileCard() {
       <View style={S.profileContent}>
         <View style={S.profileAvatar}>
           <LinearGradient colors={['#1a6fff', '#0A84FF']} style={StyleSheet.absoluteFillObject} />
-          <Text style={S.profileInitials}>{USER_NAME[0]}</Text>
+          <Text style={S.profileInitials}>{initial}</Text>
         </View>
         <View style={S.profileInfo}>
-          <Text style={S.profileName}>{USER_NAME} Withanage</Text>
+          <Text style={S.profileName}>{displayName}</Text>
           <Text style={S.profileEmail}>januda@smarthome.com</Text>
           <View style={S.profileBadge}>
             <Ionicons name="shield-checkmark" size={12} color="#30D158" />
@@ -1852,6 +1794,7 @@ function EnergyMonitorScreen({ onScroll }: { onScroll: (e: NativeSyntheticEvent<
   const [devices, setDevices] = useState<Device[]>([]);
   const [filter, setFilter] = useState<TimeFilter>('today');
   const [showAllCutoffs, setShowAllCutoffs] = useState(false);
+  const [energyData, setEnergyData] = useState<EnergyData[]>([]);
 
   useEffect(() => {
     getDevices().then(setDevices);
@@ -1861,7 +1804,15 @@ function EnergyMonitorScreen({ onScroll }: { onScroll: (e: NativeSyntheticEvent<
     getDevices().then(setDevices);
   }), []);
 
-  const energyData    = useMemo(() => generateEnergyData(devices, filter), [devices, filter]);
+  // Recompute real usage whenever the device list or the period filter changes.
+  useEffect(() => {
+    let active = true;
+    computeEnergyData(devices, filter).then((data) => {
+      if (active) setEnergyData(data);
+    });
+    return () => { active = false; };
+  }, [devices, filter]);
+
   const safetyCutoffs = useMemo(() => generateSafetyCutoffs(devices), [devices]);
   const totalKwh  = energyData.reduce((sum, d) => sum + d.kwh, 0);
   const totalCost = energyData.reduce((sum, d) => sum + d.cost, 0);
@@ -2066,6 +2017,7 @@ export default function HomeScreen() {
   const [modalVisible,    setModalVisible]    = useState(false);
   const [editingFloor,    setEditingFloor]    = useState<Floor | null>(null);
   const [addDeviceModal,  setAddDeviceModal]  = useState(false);
+  const [unreadAlerts,    setUnreadAlerts]    = useState(0);
 
   // ── Tab-bar hide-on-scroll ────────────────────────────────────────────────
   const lastScrollY   = useRef(0);
@@ -2111,6 +2063,15 @@ export default function HomeScreen() {
     });
   }, []);
 
+  // Unread alert count for the home bell badge (independent of device health).
+  useEffect(() => {
+    getAlerts().then((alerts) => setUnreadAlerts(alerts.filter((a) => !a.read).length));
+    const unsubscribe = subscribeToAlerts(() => {
+      getAlerts().then((alerts) => setUnreadAlerts(alerts.filter((a) => !a.read).length));
+    });
+    return unsubscribe;
+  }, []);
+
   // Real-time sync: refetch floors + devices on any DB change so the home and
   // floors tabs stay current without a manual refresh.
   useEffect(() => {
@@ -2144,14 +2105,13 @@ export default function HomeScreen() {
   const activeDevices = useMemo(() => allDevices.filter(d => d.status === 'on').length, [allDevices]);
   const alertCount    = useMemo(() => allDevices.filter(d => d.status === 'error' || d.status === 'offline').length, [allDevices]);
 
-  const handleFloorSave = useCallback(async (name: string, level: number, floorPlanUri?: string) => {
+  const handleFloorSave = useCallback(async (name: string, level: number) => {
     if (editingFloor) {
-      await updateFloor(editingFloor.id, { name, level, floorPlanUri });
-      const patch = { name, level, ...(floorPlanUri !== undefined ? { floorPlanUri } : {}) };
-      setFloorList(prev => prev.map(f => f.id === editingFloor.id ? { ...f, ...patch } : f));
-      setFloors(prev => prev.map(f => f.id === editingFloor.id ? { ...f, ...patch } : f));
+      await updateFloor(editingFloor.id, { name, level });
+      setFloorList(prev => prev.map(f => f.id === editingFloor.id ? { ...f, name, level } : f));
+      setFloors(prev => prev.map(f => f.id === editingFloor.id ? { ...f, name, level } : f));
     } else {
-      const newFloor = await addFloor(name, level, floorPlanUri);
+      const newFloor = await addFloor(name, level);
       setFloorList(prev => [...prev, newFloor]);
       setFloors(prev => [...prev, newFloor]);
     }
@@ -2202,7 +2162,7 @@ export default function HomeScreen() {
 
       {/* ── HOME TAB ────────────────────────────────────────────────────── */}
       <TabPanel visible={activeTab === 'home'}>
-        <HomeNavBar alerts={issueCount} />
+        <HomeNavBar alerts={unreadAlerts} />
         <ScrollView style={S.scroll} contentContainerStyle={S.scrollContent} showsVerticalScrollIndicator={false}
           onScroll={handleScroll} scrollEventThrottle={16}>
           <LargeTitle issueCount={issueCount} />
@@ -2528,15 +2488,6 @@ const S = StyleSheet.create({
   saveBtn:         { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, height: 56, borderRadius: 18, overflow: 'hidden', marginTop: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
   saveBtnSheen:    { position: 'absolute', top: 0, left: '15%', right: '15%', height: 1, backgroundColor: 'rgba(255,255,255,0.4)', borderRadius: 1, zIndex: 2 },
   saveBtnText:     { fontSize: 17, fontWeight: '700', color: '#fff', letterSpacing: -0.3 },
-  // Floor plan upload
-  floorPlanUploadBtn:  { height: 90, borderRadius: 16, overflow: 'hidden', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.2)', justifyContent: 'center', alignItems: 'center' },
-  floorPlanThumb:      { ...StyleSheet.absoluteFillObject as any, borderRadius: 16 },
-  floorPlanOverlay:    { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(0,0,0,0.55)', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 10 },
-  floorPlanCheckBadge: { position: 'absolute', top: 8, right: 10 },
-  floorPlanEmptyInner: { alignItems: 'center', gap: 6 },
-  floorPlanIconRing:   { width: 44, height: 44, borderRadius: 14, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(10,132,255,0.12)', borderWidth: 1, borderColor: 'rgba(10,132,255,0.3)' },
-  floorPlanUploadText: { fontSize: 14, fontWeight: '600', color: 'rgba(255,255,255,0.8)' },
-  floorPlanUploadSub:  { fontSize: 12, color: 'rgba(255,255,255,0.35)' },
   // Add Device modal
   addDeviceSheet:    { maxHeight: height * 0.92 },
   deviceTypeGrid:    { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
