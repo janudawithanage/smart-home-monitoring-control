@@ -36,6 +36,7 @@ function RootNavigator() {
           <Stack.Screen name="floor-plan/index" options={{ headerShown: false, animation: 'slide_from_bottom' }} />
           <Stack.Screen name="floors/index" options={{ headerShown: false, animation: 'fade' }} />
           <Stack.Screen name="security/index" options={{ headerShown: false, animation: 'slide_from_right' }} />
+          <Stack.Screen name="notifications/index" options={{ headerShown: false, animation: 'slide_from_right' }} />
           <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
         </Stack.Protected>
         <Stack.Screen name="index" options={{ headerShown: false }} />
