@@ -9,13 +9,15 @@
 import { Colors } from '@/constants/colors';
 import {
     CAMERA_DEVICE_TYPES,
+    DEFAULT_FLOOR_PLAN_IMAGE,
     FLOOR_PLAN_CONFIGS,
     getFloorPlanConfig,
     MULTI_SWITCH_TYPES,
     SAFETY_INFO,
-    setDevicePin
+    setDevicePin,
+    removeDevicePin
 } from '@/data/floorPlanData';
-import { getDevices, getFloors, subscribeToDevices, subscribeToFloors, toggleDevice } from '@/services/deviceService';
+import { getDevices, getFloors, getPinsForFloor, setDevicePinPosition, subscribeToDevices, subscribeToFloorPlanPins, subscribeToFloors, toggleDevice } from '@/services/deviceService';
 import { Device, DeviceStatus, DeviceType, Floor } from '@/types/device';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
@@ -564,7 +566,7 @@ function FloorPlanCanvas({
   const floor = FLOOR_PLAN_CONFIGS.find((c) => c.floorId === floorId);
   const canvasW = config?.canvasWidth ?? floor?.canvasWidth ?? 360;
   const canvasH = config?.canvasHeight ?? floor?.canvasHeight ?? 432;
-  const image   = config?.image ?? floor?.image ?? null;
+  const image   = config?.image ?? floor?.image ?? DEFAULT_FLOOR_PLAN_IMAGE;
   const pins    = config?.pins ?? floor?.pins ?? [];
 
   const handleCanvasTap = useCallback((e: GestureResponderEvent) => {
@@ -777,6 +779,30 @@ export default function FloorPlanScreen() {
     [floors, selectedFloor],
   );
 
+  // Load persisted pins for the selected floor into the in-memory config store
+  // so the canvas renders them. Fires on mount and every floor switch.
+  useEffect(() => {
+    if (!selectedFloor) return;
+    getPinsForFloor(selectedFloor).then((pins) => {
+      pins.forEach((pin) => setDevicePin(selectedFloor, pin.deviceId, pin.x, pin.y));
+      setPinVersion((v) => v + 1);
+    });
+  }, [selectedFloor]);
+
+  // Real-time sync for pins on the current floor.
+  useEffect(() => {
+    if (!selectedFloor) return;
+    return subscribeToFloorPlanPins((event, pin) => {
+      if (!pin) return;
+      if (event === 'DELETE') {
+        removeDevicePin(selectedFloor, pin.deviceId);
+      } else {
+        setDevicePin(selectedFloor, pin.deviceId, pin.x, pin.y);
+      }
+      setPinVersion((v) => v + 1);
+    }, `floor_id=eq.${selectedFloor}`);
+  }, [selectedFloor]);
+
   const handlePinPress = useCallback((device: Device) => {
     // Route to specialized screens for certain device types
     if (device.type === 'multiSwitch') {
@@ -800,6 +826,7 @@ export default function FloorPlanScreen() {
   const handlePlacePin = useCallback((x: number, y: number) => {
     if (!placingDevice || !selectedFloor) return;
     setDevicePin(selectedFloor, placingDevice.id, x, y);
+    setDevicePinPosition(selectedFloor, placingDevice.id, x, y); // persist to Supabase
     setPinVersion((v) => v + 1); // force canvas re-render
     setPlacingDevice(null);
   }, [placingDevice, selectedFloor]);
