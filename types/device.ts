@@ -60,8 +60,6 @@ export interface Floor {
   level: number; // 0 = ground, 1 = first, etc.
   deviceCount: number;
   activeDeviceCount: number;
-  /** URI of the user-uploaded floor plan image (file:// URI or bundled asset path) */
-  floorPlanUri?: string;
 }
 
 export interface Room {
