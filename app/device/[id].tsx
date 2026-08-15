@@ -328,12 +328,36 @@ function SafetyPanel({
   device: Device;
   accentColor: string;
 }) {
-  const [maxDuration, setMaxDuration] = useState(30);
-  const [autoCutoff, setAutoCutoff] = useState(true);
+  // Initialize from the persisted value so the control round-trips across restarts.
+  const [maxDuration, setMaxDuration] = useState(device.safetyTimeout ?? 30);
+  const [autoCutoff, setAutoCutoff] = useState(device.safetyTimeout != null);
   const isIron = device.type === 'iron';
 
   const heatLevels = ['Low', 'Medium', 'High', 'Max'];
   const [heatLevel, setHeatLevel] = useState('Medium');
+
+  // Persist the effective safety timeout: enabled → duration minutes, off → null.
+  const saveSafetyTimeout = (enabled: boolean, duration: number) => {
+    updateDevice(device.id, { safetyTimeout: enabled ? duration : null });
+  };
+
+  const decreaseDuration = () => {
+    const next = Math.max(5, maxDuration - 5);
+    setMaxDuration(next);
+    saveSafetyTimeout(autoCutoff, next);
+  };
+
+  const increaseDuration = () => {
+    const next = Math.min(120, maxDuration + 5);
+    setMaxDuration(next);
+    saveSafetyTimeout(autoCutoff, next);
+  };
+
+  const toggleAutoCutoff = () => {
+    const next = !autoCutoff;
+    setAutoCutoff(next);
+    saveSafetyTimeout(next, maxDuration);
+  };
 
   return (
     <>
@@ -342,7 +366,7 @@ function SafetyPanel({
         <View style={safetyStyles.durationRow}>
           <TouchableOpacity
             style={safetyStyles.durationBtn}
-            onPress={() => setMaxDuration((p) => Math.max(5, p - 5))}
+            onPress={decreaseDuration}
           >
             <Ionicons name="remove" size={20} color={Colors.text.primary} />
           </TouchableOpacity>
@@ -352,7 +376,7 @@ function SafetyPanel({
           </View>
           <TouchableOpacity
             style={safetyStyles.durationBtn}
-            onPress={() => setMaxDuration((p) => Math.min(120, p + 5))}
+            onPress={increaseDuration}
           >
             <Ionicons name="add" size={20} color={Colors.text.primary} />
           </TouchableOpacity>
@@ -396,7 +420,7 @@ function SafetyPanel({
             <Text style={panelStyles.infoValue}>Auto Cutoff</Text>
             <Text style={panelStyles.infoLabel}>Turns off after {maxDuration} min</Text>
           </View>
-          <SwitchButton value={autoCutoff} onToggle={() => setAutoCutoff((p) => !p)} size="sm" />
+          <SwitchButton value={autoCutoff} onToggle={toggleAutoCutoff} size="sm" />
         </View>
       </SectionCard>
     </>
