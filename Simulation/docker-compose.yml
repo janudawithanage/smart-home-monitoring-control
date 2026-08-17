@@ -1,0 +1,15 @@
+services:
+  simulator:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: smart-home-simulator:latest
+    container_name: smart-home-simulator
+    ports:
+      - "${SIM_PORT:-8080}:80"
+    environment:
+      # Read from Simulation/.env (copy .env.example). These are the *public*
+      # project URL and anon key — the same pair the mobile app ships with.
+      SUPABASE_URL: ${SUPABASE_URL:?set SUPABASE_URL in Simulation/.env}
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:?set SUPABASE_ANON_KEY in Simulation/.env}
+    restart: unless-stopped
