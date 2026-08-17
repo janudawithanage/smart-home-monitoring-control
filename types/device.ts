@@ -12,6 +12,13 @@ export type DeviceType =
 
 export type DeviceStatus = 'on' | 'off' | 'error' | 'offline';
 
+/**
+ * Device types that require a safety cutoff (auto-shutoff after a max runtime).
+ * Matches the SafetyPanel eligibility in app/device/[id].tsx (iron / fan /
+ * thermostat — the doc's "irons, heaters" where thermostat is the heater proxy).
+ */
+export const SAFETY_CRITICAL_TYPES: readonly DeviceType[] = ['iron', 'fan', 'thermostat'];
+
 export type SwitchCircuitStatus = 'on' | 'off' | 'error' | 'disconnected';
 
 export interface SwitchCircuit {

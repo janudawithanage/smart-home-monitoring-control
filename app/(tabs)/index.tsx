@@ -1,9 +1,10 @@
 import { useAuth } from '@/context/AuthContext';
 import { Colors } from '@/constants/colors';
+import { signOut } from '@/services/authService';
 import { getAlerts, subscribeToAlerts } from '@/services/alertService';
 import { addDevice, addFloor, deleteFloor, getDevices, getFloors, subscribeToDevices, subscribeToFloors, updateFloor } from '@/services/deviceService';
 import { computeEnergyData, EnergyData } from '@/services/energyService';
-import { Device, DeviceType, Floor } from '@/types/device';
+import { Device, DeviceType, Floor, SAFETY_CRITICAL_TYPES } from '@/types/device';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -467,7 +468,7 @@ function DeviceStatusOverview({ devices }: { devices: Device[] }) {
   );
 }
 
-function QuickActionsBar({ onGoFloors, onAddDevice }: { onGoFloors: () => void; onAddDevice: () => void }) {
+function QuickActionsBar({ onGoFloors, onAddDevice, onOpenMultiSwitch }: { onGoFloors: () => void; onAddDevice: () => void; onOpenMultiSwitch: () => void }) {
   return (
     <View style={S.section}>
       <View style={S.sectionHeader}><Text style={S.sectionTitle}>Quick Actions</Text></View>
@@ -477,7 +478,7 @@ function QuickActionsBar({ onGoFloors, onAddDevice }: { onGoFloors: () => void; 
             onPress={() => {
               if (a.id === 'addFloor') { onGoFloors(); }
               else if (a.id === 'addDevice') { onAddDevice(); }
-              else if (a.id === 'multiSwitch') { router.push('/multi-switch/d17'); }
+              else if (a.id === 'multiSwitch') { onOpenMultiSwitch(); }
               else if (a.id === 'floorPlan') { router.push('/floor-plan'); }
             }}
             accessibilityRole="button" accessibilityLabel={a.label}>
@@ -730,29 +731,36 @@ const DEVICE_TYPE_OPTIONS: { type: DeviceType; label: string; icon: keyof typeof
   { type: 'tv',         label: 'TV',         icon: 'tv-outline',             color: Colors.device.tv         },
   { type: 'speaker',    label: 'Speaker',    icon: 'volume-high-outline',    color: Colors.device.speaker    },
   { type: 'outlet',     label: 'Outlet',     icon: 'flash-outline',          color: Colors.device.outlet     },
+  { type: 'iron',       label: 'Iron',       icon: 'water-outline',          color: Colors.device.iron       },
+  { type: 'multiSwitch', label: 'Multi-Switch', icon: 'apps-outline',        color: Colors.device.multiSwitch },
 ];
 
-function AddDeviceModal({ visible, floors, onClose, onSave }: {
+function AddDeviceModal({ visible, floors, onClose, onSave, initialType = 'light' }: {
   visible: boolean;
   floors: Floor[];
   onClose: () => void;
-  onSave: (device: { name: string; type: DeviceType; floorId: string; roomName: string }) => void;
+  onSave: (device: { name: string; type: DeviceType; floorId: string; roomName: string; safetyTimeout?: number | null }) => void;
+  initialType?: DeviceType;
 }) {
   const [name,     setName]     = useState('');
   const [roomName, setRoomName] = useState('');
-  const [selType,  setSelType]  = useState<DeviceType>('light');
+  const [selType,  setSelType]  = useState<DeviceType>(initialType);
   const [selFloor, setSelFloor] = useState<string>('');
+  const [safetyTimeout, setSafetyTimeout] = useState(30);
   const slideAnim = useRef(new Animated.Value(height)).current;
+
+  const isSafetyCritical = SAFETY_CRITICAL_TYPES.includes(selType);
 
   useEffect(() => {
     if (visible) {
-      setName(''); setRoomName(''); setSelType('light');
+      setName(''); setRoomName(''); setSelType(initialType);
       setSelFloor(floors.length > 0 ? floors[0].id : '');
+      setSafetyTimeout(30);
       Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, speed: 20, bounciness: 4 }).start();
     } else {
       Animated.timing(slideAnim, { toValue: height, useNativeDriver: true, duration: 220 }).start();
     }
-  }, [visible, floors]);
+  }, [visible, floors, initialType]);
 
   const handleSave = () => {
     const trimmedName = name.trim();
@@ -760,7 +768,13 @@ function AddDeviceModal({ visible, floors, onClose, onSave }: {
     if (!trimmedName) { Alert.alert('Name Required', 'Please enter a device name.'); return; }
     if (!trimmedRoom) { Alert.alert('Room Required', 'Please enter the room name.'); return; }
     if (!selFloor)    { Alert.alert('Floor Required', 'Please select a floor.'); return; }
-    onSave({ name: trimmedName, type: selType, floorId: selFloor, roomName: trimmedRoom });
+    onSave({
+      name: trimmedName,
+      type: selType,
+      floorId: selFloor,
+      roomName: trimmedRoom,
+      safetyTimeout: isSafetyCritical ? safetyTimeout : null,
+    });
   };
 
   return (
@@ -822,6 +836,34 @@ function AddDeviceModal({ visible, floors, onClose, onSave }: {
                 })}
               </View>
             </View>
+
+            {/* Safety Timeout — only for safety-critical device types */}
+            {isSafetyCritical && (
+              <View style={S.inputSection}>
+                <Text style={S.inputLabel}>Safety Timeout</Text>
+                <Text style={S.fieldHint}>Auto shut-off after {safetyTimeout} minutes</Text>
+                <View style={S.durationRow}>
+                  <TouchableOpacity
+                    style={S.durationBtn}
+                    onPress={() => setSafetyTimeout((v) => Math.max(5, v - 5))}
+                    accessibilityLabel="Decrease safety timeout"
+                  >
+                    <Ionicons name="remove" size={20} color={Colors.text.primary} />
+                  </TouchableOpacity>
+                  <View style={S.durationDisplay}>
+                    <Text style={S.durationValue}>{safetyTimeout}</Text>
+                    <Text style={S.durationUnit}>min</Text>
+                  </View>
+                  <TouchableOpacity
+                    style={S.durationBtn}
+                    onPress={() => setSafetyTimeout((v) => Math.min(120, v + 5))}
+                    accessibilityLabel="Increase safety timeout"
+                  >
+                    <Ionicons name="add" size={20} color={Colors.text.primary} />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
 
             {/* Floor */}
             {floors.length > 0 && (
@@ -1738,7 +1780,18 @@ function SettingsScreen({ onScroll }: { onScroll: (e: NativeSyntheticEvent<Nativ
     } else if (itemId === 'logout') {
       Alert.alert('Log Out', 'Are you sure you want to log out?', [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Log Out', style: 'destructive', onPress: () => console.log('Logging out...') },
+        {
+          text: 'Log Out',
+          style: 'destructive',
+          onPress: async () => {
+            const { error } = await signOut();
+            if (error) {
+              Alert.alert('Error', error.message);
+              return;
+            }
+            router.replace('/(auth)/login');
+          },
+        },
       ]);
     } else if (itemId === 'delete') {
       Alert.alert('Delete Account', 'This action cannot be undone. Are you sure?', [
@@ -2017,6 +2070,7 @@ export default function HomeScreen() {
   const [modalVisible,    setModalVisible]    = useState(false);
   const [editingFloor,    setEditingFloor]    = useState<Floor | null>(null);
   const [addDeviceModal,  setAddDeviceModal]  = useState(false);
+  const [addDeviceType,   setAddDeviceType]   = useState<DeviceType>('light');
   const [unreadAlerts,    setUnreadAlerts]    = useState(0);
 
   // ── Tab-bar hide-on-scroll ────────────────────────────────────────────────
@@ -2136,7 +2190,7 @@ export default function HomeScreen() {
   const openAddFloor = () => { setEditingFloor(null); setModalVisible(true); };
 
   const handleAddDevice = useCallback(async (fields: {
-    name: string; type: DeviceType; floorId: string; roomName: string;
+    name: string; type: DeviceType; floorId: string; roomName: string; safetyTimeout?: number | null;
   }) => {
     const newDevice = await addDevice(fields);
     setDevices(prev => [...prev, newDevice]);
@@ -2172,14 +2226,18 @@ export default function HomeScreen() {
           <RecentActivity devices={filteredDevices} />
           <SafetyAlerts devices={filteredDevices} />
           <DeviceStatusOverview devices={filteredDevices} />
-          <QuickActionsBar onGoFloors={() => setActiveTab('floors')} onAddDevice={() => setAddDeviceModal(true)} />
+          <QuickActionsBar onGoFloors={() => setActiveTab('floors')} onAddDevice={() => { setAddDeviceType('light'); setAddDeviceModal(true); }} onOpenMultiSwitch={() => {
+            const ms = allDevices.find(d => d.type === 'multiSwitch');
+            if (ms) router.push(`/multi-switch/${ms.id}`);
+            else { setAddDeviceType('multiSwitch'); setAddDeviceModal(true); }
+          }} />
           <View style={{ height: IOS_BOTTOM + 110 }} />
         </ScrollView>
       </TabPanel>
 
       {/* ── FLOORS TAB ──────────────────────────────────────────────────── */}
       <TabPanel visible={activeTab === 'floors'}>
-        <FloorsNavBar onAdd={openAddFloor} onAddDevice={() => setAddDeviceModal(true)} />
+        <FloorsNavBar onAdd={openAddFloor} onAddDevice={() => { setAddDeviceType('light'); setAddDeviceModal(true); }} />
         <ScrollView style={S.scroll} contentContainerStyle={S.scrollContent}
           showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled"
           onScroll={handleScroll} scrollEventThrottle={16}>
@@ -2298,7 +2356,7 @@ export default function HomeScreen() {
       <FloorModal visible={modalVisible} editingFloor={editingFloor}
         onClose={() => setModalVisible(false)} onSave={handleFloorSave} />
 
-      <AddDeviceModal visible={addDeviceModal} floors={floorList}
+      <AddDeviceModal visible={addDeviceModal} floors={floorList} initialType={addDeviceType}
         onClose={() => setAddDeviceModal(false)} onSave={handleAddDevice} />
     </View>
   );
@@ -2496,6 +2554,12 @@ const S = StyleSheet.create({
   floorChipRowModal: { gap: 10, paddingBottom: 4 },
   floorChipModal:    { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 18, overflow: 'hidden', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.16)', gap: 7 },
   floorChipModalText:{ fontSize: 14, fontWeight: '600', color: 'rgba(255,255,255,0.55)' },
+  fieldHint:         { fontSize: 13, color: 'rgba(255,255,255,0.4)', marginTop: -4, marginBottom: 12 },
+  durationRow:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 14 },
+  durationBtn:       { width: 46, height: 46, borderRadius: 14, backgroundColor: Colors.bg.elevated, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)' },
+  durationDisplay:   { flex: 1, flexDirection: 'row', alignItems: 'baseline', justifyContent: 'center', gap: 6 },
+  durationValue:     { fontSize: 32, fontWeight: '800', color: Colors.accent.blue },
+  durationUnit:      { fontSize: 13, fontWeight: '600', color: 'rgba(255,255,255,0.45)' },
   // Tab bar
   tabOuter:      { position: 'absolute', bottom: IOS_BOTTOM, left: H_PAD, right: H_PAD, zIndex: 30 },
   tabBloom:      { position: 'absolute', top: 4, left: 20, right: 20, height: 60, borderRadius: 40, backgroundColor: 'rgba(40,90,255,0.18)', shadowColor: '#3060ff', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.5, shadowRadius: 26 },

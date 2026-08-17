@@ -7,7 +7,7 @@
 
 import { supabase } from './supabase';
 import { subscribeToTable, RealtimeEvent } from './realtime';
-import { Device, DeviceStatus, Floor } from '@/types/device';
+import { Device, DeviceStatus, Floor, SwitchCircuit } from '@/types/device';
 
 // ─── Row → domain mappers (snake_case DB columns → camelCase types) ──────────
 
@@ -304,7 +304,7 @@ export async function updateDevice(
  */
 export async function addDevice(
   fields: Pick<Device, 'name' | 'type' | 'floorId' | 'roomName'> &
-    Partial<Pick<Device, 'value' | 'unit'>>,
+    Partial<Pick<Device, 'value' | 'unit'>> & { safetyTimeout?: number | null },
 ): Promise<Device> {
   const userId = await getUserId();
   if (!userId) throw new Error('Not authenticated');
@@ -320,11 +320,151 @@ export async function addDevice(
       room_name: fields.roomName,
       value: fields.value ?? null,
       unit: fields.unit ?? null,
+      safety_timeout: fields.safetyTimeout ?? null,
     })
     .select()
     .single();
   if (error) throw new Error(error.message);
   return mapDevice(data as DeviceRow);
+}
+
+export async function deleteDevice(id: string): Promise<boolean> {
+  try {
+    const { error } = await supabase.from('devices').delete().eq('id', id);
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('deleteDevice failed:', error);
+    return false;
+  }
+}
+
+// ─── Switch Circuits (multi-switch / gang-box devices) ────────────────────────
+
+interface SwitchCircuitRow {
+  id: string;
+  device_id: string;
+  name: string;
+  status: SwitchCircuit['status'];
+  power: number | string | null;
+  position: number;
+  created_at: string;
+}
+
+function mapCircuit(row: SwitchCircuitRow): SwitchCircuit {
+  return {
+    id: row.id,
+    name: row.name,
+    status: row.status,
+    power: row.power != null ? Number(row.power) : undefined,
+  };
+}
+
+const DEFAULT_CIRCUIT_NAMES = ['Ceiling Light', 'Wall Light', 'Desk Lamp', 'Fan', 'Accent Light'];
+
+/**
+ * Number of circuits a multi-switch device has. Mirrors the screen's heuristic:
+ * parse "N-Switch" from the device name, defaulting to 3.
+ */
+function getSwitchCount(name: string): number {
+  const match = name.match(/(\d+)-Switch/);
+  return match ? parseInt(match[1], 10) : 3;
+}
+
+/**
+ * Subscribe to changes on the `switch_circuits` table. Returns an unsubscribe fn.
+ * Use `filter` (e.g. `device_id=eq.<uuid>`) to scope to one device.
+ */
+export function subscribeToSwitchCircuits(
+  onChange: (event: RealtimeEvent, circuit?: SwitchCircuit) => void,
+  filter?: string,
+): () => void {
+  return subscribeToTable<SwitchCircuit>(
+    'switch_circuits',
+    (row) => mapCircuit(row as unknown as SwitchCircuitRow),
+    (event, newRow, oldRow) => onChange(event, newRow ?? oldRow),
+    filter,
+  );
+}
+
+/**
+ * Fetch all circuits for a multi-switch device, ordered by position.
+ * If the device is a multiSwitch with no circuits yet (e.g. added before
+ * circuit creation was wired), lazily create default circuits and return them.
+ */
+export async function getCircuitsForDevice(deviceId: string): Promise<SwitchCircuit[]> {
+  try {
+    const { data, error } = await supabase
+      .from('switch_circuits')
+      .select('*')
+      .eq('device_id', deviceId)
+      .order('position', { ascending: true });
+    if (error) throw error;
+
+    if ((data ?? []).length > 0) {
+      return (data ?? []).map((row) => mapCircuit(row as SwitchCircuitRow));
+    }
+
+    const { data: device, error: deviceError } = await supabase
+      .from('devices')
+      .select('name, type')
+      .eq('id', deviceId)
+      .maybeSingle();
+    if (deviceError) throw deviceError;
+    if (!device || device.type !== 'multiSwitch') return [];
+
+    const count = getSwitchCount(device.name);
+    const rows = Array.from({ length: count }, (_, i) => ({
+      device_id: deviceId,
+      name: `Switch ${i + 1} — ${DEFAULT_CIRCUIT_NAMES[i] ?? 'Device'}`,
+      status: 'off',
+      power: null,
+      position: i,
+    }));
+
+    const { data: inserted, error: insertError } = await supabase
+      .from('switch_circuits')
+      .insert(rows)
+      .select()
+      .order('position', { ascending: true });
+    if (insertError) throw insertError;
+    return (inserted ?? []).map((row) => mapCircuit(row as SwitchCircuitRow));
+  } catch (error) {
+    console.error('getCircuitsForDevice failed:', error);
+    return [];
+  }
+}
+
+/**
+ * Toggle an individual switch circuit between 'on' and 'off'.
+ * Returns the updated circuit.
+ */
+export async function toggleCircuit(id: string): Promise<SwitchCircuit | undefined> {
+  try {
+    const { data: current, error: readError } = await supabase
+      .from('switch_circuits')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+    if (readError) throw readError;
+    if (!current) return undefined;
+
+    const status =
+      current.status === 'on' ? 'off' : current.status === 'off' ? 'on' : current.status;
+    const power = status === 'on' ? 40 + Math.random() * 60 : 0;
+
+    const { data, error } = await supabase
+      .from('switch_circuits')
+      .update({ status, power })
+      .eq('id', id)
+      .select()
+      .maybeSingle();
+    if (error) throw error;
+    return data ? mapCircuit(data as SwitchCircuitRow) : undefined;
+  } catch (error) {
+    console.error('toggleCircuit failed:', error);
+    return undefined;
+  }
 }
 
 /**
