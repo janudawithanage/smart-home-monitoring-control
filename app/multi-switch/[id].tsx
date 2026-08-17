@@ -17,36 +17,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import StatusBadge from '@/components/StatusBadge';
 import SwitchButton from '@/components/SwitchButton';
 import { Colors } from '@/constants/colors';
-import { getDeviceById, subscribeToDevices, updateDevice } from '@/services/deviceService';
-import { Device, DeviceStatus } from '@/types/device';
-
-// ─── Types for Multi-Switch ──────────────────────────────────────────────────
-
-interface SwitchCircuit {
-  id: string;
-  name: string;
-  status: 'on' | 'off' | 'error' | 'disconnected';
-  power?: number; // watts
-}
-
-// ─── Mock data for circuits ──────────────────────────────────────────────────
-// In a real app, this would come from the backend along with the device data
-function getMockCircuits(switchCount: number): SwitchCircuit[] {
-  const names = [
-    'Ceiling Light',
-    'Wall Light',
-    'Desk Lamp',
-    'Fan',
-    'Accent Light',
-  ];
-  
-  return Array.from({ length: switchCount }, (_, i) => ({
-    id: `circuit-${i + 1}`,
-    name: `Switch ${i + 1} — ${names[i] || 'Device'}`,
-    status: i % 2 === 0 ? 'on' : 'off',
-    power: i % 2 === 0 ? 40 + Math.random() * 60 : 0,
-  })) as SwitchCircuit[];
-}
+import {
+  getCircuitsForDevice,
+  getDeviceById,
+  subscribeToDevices,
+  subscribeToSwitchCircuits,
+  toggleCircuit,
+  updateDevice,
+} from '@/services/deviceService';
+import { Device, DeviceStatus, SwitchCircuit } from '@/types/device';
 
 // ─── Main Screen ─────────────────────────────────────────────────────────────
 
@@ -56,23 +35,16 @@ export default function MultiSwitchDetailScreen() {
   const [circuits, setCircuits] = useState<SwitchCircuit[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Determine switch count from device name or default to 3
-  const switchCount = device?.name.match(/(\d)-Switch/)?.[1] 
-    ? parseInt(device.name.match(/(\d)-Switch/)![1], 10)
-    : 3;
-
   useEffect(() => {
     if (!id) return;
-    getDeviceById(id).then((d) => {
+    getDeviceById(id).then(async (d) => {
       if (d) {
         setDevice(d);
-        // In a real app, fetch circuits from backend
-        const mockCircuits = getMockCircuits(switchCount);
-        setCircuits(mockCircuits);
+        setCircuits(await getCircuitsForDevice(d.id));
       }
       setLoading(false);
     });
-  }, [id, switchCount]);
+  }, [id]);
 
   // Real-time sync for this single device: merge payload into local state.
   useEffect(() => {
@@ -86,25 +58,35 @@ export default function MultiSwitchDetailScreen() {
     }, `id=eq.${id}`);
   }, [id]);
 
-  const handleToggleCircuit = useCallback((circuitId: string) => {
-    setCircuits((prev) =>
-      prev.map((c) =>
-        c.id === circuitId
-          ? {
-              ...c,
-              status: c.status === 'on' ? 'off' : c.status === 'off' ? 'on' : c.status,
-              power: c.status === 'off' ? 40 + Math.random() * 60 : 0,
-            }
-          : c
-      )
-    );
+  // Real-time sync for this device's circuits.
+  useEffect(() => {
+    if (!id) return;
+    return subscribeToSwitchCircuits((event, updated) => {
+      if (!updated) return;
+      setCircuits((prev) => {
+        const exists = prev.some((c) => c.id === updated.id);
+        if (event === 'DELETE') return prev.filter((c) => c.id !== updated.id);
+        if (exists) return prev.map((c) => (c.id === updated.id ? updated : c));
+        return [...prev, updated];
+      });
+    }, `device_id=eq.${id}`);
+  }, [id]);
+
+  const handleToggleCircuit = useCallback(async (circuitId: string) => {
+    const updated = await toggleCircuit(circuitId);
+    if (updated) {
+      setCircuits((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
+    }
   }, []);
 
   const handleToggleAll = useCallback(async () => {
     if (!device) return;
     const allOn = circuits.every((c) => c.status === 'on');
     const newStatus = allOn ? 'off' : 'on';
-    
+    const toggleable = circuits.filter(
+      (c) => c.status !== 'error' && c.status !== 'disconnected',
+    );
+
     setCircuits((prev) =>
       prev.map((c) => ({
         ...c,
@@ -113,6 +95,7 @@ export default function MultiSwitchDetailScreen() {
       }))
     );
 
+    await Promise.all(toggleable.map((c) => toggleCircuit(c.id)));
     const updated = await updateDevice(device.id, { status: newStatus as DeviceStatus });
     if (updated) setDevice(updated);
   }, [device, circuits]);
