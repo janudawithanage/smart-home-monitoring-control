@@ -36,6 +36,21 @@ as $$
 begin
   if new.status = 'on' and (old.status is distinct from 'on') then
     new.on_since = now();
+
+    -- Safety log: when a monitored (safety_timeout) device turns on, record a
+    -- notification so the user sees the "will auto-off in N min" event in the
+    -- Notifications screen. The cutoff event itself is logged separately by
+    -- run_safety_cutoff() below.
+    if new.safety_timeout is not null then
+      insert into public.alerts (user_id, device_id, type, title, message)
+      values (
+        new.user_id,
+        new.id,
+        'safety',
+        'Safety monitoring started',
+        format('%s turned on — auto shut-off in %s minute(s)', new.name, new.safety_timeout)
+      );
+    end if;
   elsif new.status <> 'on' then
     new.on_since = null;
   end if;
